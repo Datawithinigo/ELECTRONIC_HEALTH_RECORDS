@@ -331,6 +331,8 @@ def evaluate_model(model, X_test, y_test, model_name, X_test_scaled=None):
 
 def plot_feature_importance(model, feature_names, model_name, top_n=20):
     """Plot feature importance"""
+    from pathlib import Path
+    
     print(f"\n{'='*70}")
     print(f"FEATURE IMPORTANCE: {model_name}")
     print('='*70)
@@ -365,8 +367,10 @@ def plot_feature_importance(model, feature_names, model_name, top_n=20):
     plt.ylabel('Feature', fontsize=12)
     plt.tight_layout()
     
-    # Save plot
-    filename = f"feature_importance_{model_name.lower().replace(' ', '_')}.png"
+    # Save plot to results_images/
+    results_dir = Path(__file__).parent / "results_images"
+    results_dir.mkdir(exist_ok=True)
+    filename = results_dir / f"feature_importance_{model_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"\n💾 Feature importance plot saved: {filename}")
     plt.close()
@@ -376,6 +380,8 @@ def plot_feature_importance(model, feature_names, model_name, top_n=20):
 
 def plot_roc_curves(results, y_test):
     """Plot ROC curves for all models"""
+    from pathlib import Path
+    
     print(f"\n{'='*70}")
     print("ROC CURVES COMPARISON")
     print('='*70)
@@ -407,8 +413,10 @@ def plot_roc_curves(results, y_test):
     plt.grid(alpha=0.3)
     plt.tight_layout()
     
-    # Save plot
-    filename = "roc_curves_comparison.png"
+    # Save plot to results_images/
+    results_dir = Path(__file__).parent / "results_images"
+    results_dir.mkdir(exist_ok=True)
+    filename = results_dir / "roc_curves_comparison.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"\n💾 ROC curves saved: {filename}")
     plt.close()
@@ -466,8 +474,11 @@ def plot_model_comparison(results):
     plt.suptitle('Model Performance Comparison', fontsize=16, fontweight='bold', y=1.00)
     plt.tight_layout()
     
-    # Save plot
-    filename = "model_comparison.png"
+    # Save plot to results_images/
+    from pathlib import Path
+    results_dir = Path(__file__).parent / "results_images"
+    results_dir.mkdir(exist_ok=True)
+    filename = results_dir / "model_comparison.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"\n💾 Model comparison plot saved: {filename}")
     plt.close()
@@ -492,7 +503,7 @@ def main():
     print("="*70)
     
     # File path
-    filepath = "../resources_p3/df_a3_andrea_v2.csv"
+    filepath = "resources_p3/df_a3_andrea_v2.csv"
     
     # 1. Load and preprocess data
     df = load_and_preprocess_data(filepath)
@@ -550,11 +561,16 @@ def main():
     print("PIPELINE COMPLETED SUCCESSFULLY")
     print("="*70)
     print("\n📁 Generated files:")
-    print("  • feature_importance_xgboost.png")
-    print("  • feature_importance_random_forest.png")
-    print("  • feature_importance_logistic_regression.png")
-    print("  • roc_curves_comparison.png")
-    print("  • model_comparison.png")
+    print("  📊 Visualizations (results_images/):")
+    print("     • feature_importance_xgboost.png")
+    print("     • feature_importance_random_forest.png")
+    print("     • feature_importance_logistic_regression.png")
+    print("     • roc_curves_comparison.png")
+    print("     • model_comparison.png")
+    print("  🤖 Models (api/models/):")
+    print("     • xgboost.pkl")
+    print("     • random_forest.pkl")
+    print("     • logistic_regression.pkl")
     print("\n✅ All models trained and evaluated successfully!")
     print("\n🚀 API models saved and ready for deployment!")
     print("   Run: cd api && uvicorn mlapi:app --reload --port 8000")

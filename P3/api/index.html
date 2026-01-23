@@ -344,13 +344,19 @@
 
         // Load available models
         async function loadModels() {
-            const res = await fetch("/models/");
-            const models = await res.json();
+            const res = await fetch("/models");
+            const data = await res.json();
+            const models = data.models || [];
 
             const sel = document.getElementById("model_name");
             sel.innerHTML = models
-                .map(m => `<option value="${m}">${m.replace(".pkl", "")}</option>`)
+                .map(m => `<option value="${m}">${m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>`)
                 .join("");
+
+            // Set default model
+            if (data.default) {
+                sel.value = data.default;
+            }
 
             if (models.length) loadMetrics();
         }
@@ -359,55 +365,89 @@
         async function loadMetrics() {
             const modelName = document.getElementById("model_name").value;
             const metricsDiv = document.getElementById("metrics");
-            metricsDiv.style.display = "none";
-
-            const res = await fetch(`/metrics/?model_name=${encodeURIComponent(modelName)}`);
-            if (res.ok) {
-                const txt = await res.text();
-                metricsDiv.innerHTML = `<h3>📊 Model Performance Metrics</h3><pre>${txt}</pre>`;
+            
+            // Display model info
+            const modelInfo = {
+                'xgboost': 'XGBoost - Best Performance (AUC: 0.841, Accuracy: 73.1%)',
+                'random_forest': 'Random Forest - Best Balance (AUC: 0.842, Accuracy: 77.5%) ⭐ Recommended',
+                'logistic_regression': 'Logistic Regression - Most Interpretable (AUC: 0.831, Accuracy: 73.7%)'
+            };
+            
+            if (modelInfo[modelName]) {
+                metricsDiv.innerHTML = `<h3>📊 Model Info</h3><p>${modelInfo[modelName]}</p>`;
                 metricsDiv.style.display = "block";
             } else {
-                metricsDiv.innerHTML = `<div class="error">⚠️ Metrics not available for this model.</div>`;
-                metricsDiv.style.display = "block";
+                metricsDiv.style.display = "none";
             }
         }
 
         // Make prediction
         async function predict(event) {
             event.preventDefault();
-            const formData = new FormData(event.target);
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            // Get model name
+            const modelName = document.getElementById("model_name").value;
+            
+            // Convert form data to JSON
+            const data = {
+                GENDER: formData.get("gender"),
+                AGE: parseInt(formData.get("age")),
+                ETHNICITY_GROUP: formData.get("ethnicity_group"),
+                diabetes_comorbidity: parseInt(formData.get("diabetes_comorbidity")),
+                hypertension_comorbidity: parseInt(formData.get("hypertension_comorbidity")),
+                ckd_comorbidity: parseInt(formData.get("ckd_comorbidity")),
+                chf_comorbidity: parseInt(formData.get("chf_comorbidity")),
+                copd_comorbidity: parseInt(formData.get("copd_comorbidity")),
+                cancer_comorbidity: parseInt(formData.get("cancer_comorbidity")),
+                diagnosis_group: formData.get("diagnosis_group"),
+                resp_procedure: parseInt(formData.get("resp_procedure"))
+            };
 
-            const res = await fetch(event.target.action, { method: "POST", body: formData });
+            const res = await fetch(`/predict/${modelName}`, { 
+                method: "POST", 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            
             const out = document.getElementById("output");
             out.style.display = "block";
 
             if (res.ok) {
-                const data = await res.json();
+                const result = await res.json();
                 
-                const isMortality = data.prediction === 1;
+                const isMortality = result.prediction === "HIGH RISK";
                 out.className = isMortality ? "output-mortality" : "output-survival";
+                
+                const riskEmoji = {
+                    'critical': '🔴',
+                    'high': '🟠',
+                    'moderate': '🟡',
+                    'low': '🟢'
+                }[result.risk_level] || '⚪';
                 
                 out.innerHTML = `
                     <div style="font-size: 1.5rem; margin-bottom: 10px;">
-                        ${data.risk_emoji} ${data.outcome_label}
+                        ${riskEmoji} ${result.prediction}
                     </div>
                     <div style="font-size: 1.1rem; margin-bottom: 15px;">
-                        Risk Level: <strong>${data.risk_level}</strong>
+                        Risk Level: <strong>${result.risk_level.toUpperCase()}</strong>
                     </div>
                     <div class="probability-bar">
-                        <div class="probability-fill" style="width: ${data.mortality_probability}%;">
-                            ${data.mortality_probability}%
+                        <div class="probability-fill" style="width: ${result.mortality_probability}%;">
+                            ${result.mortality_probability}%
                         </div>
                     </div>
                     <div class="output-details">
-                        <strong>Model:</strong> ${data.model}<br>
-                        <strong>Mortality Probability:</strong> ${data.mortality_probability}%<br>
-                        <strong>Survival Probability:</strong> ${data.survival_probability}%<br>
+                        <strong>Model:</strong> ${result.model.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}<br>
+                        <strong>Mortality Probability:</strong> ${result.mortality_probability}%<br>
+                        <strong>Survival Probability:</strong> ${(100 - result.mortality_probability).toFixed(2)}%<br>
                         <hr style="border: 1px solid rgba(255,255,255,0.3); margin: 10px 0;">
                         <strong>Patient Summary:</strong><br>
-                        Age: ${data.input_summary.age} | Gender: ${data.input_summary.gender} | 
-                        Comorbidities: ${data.input_summary.comorbidities} | 
-                        Ventilation: ${data.input_summary.resp_procedure}
+                        Age: ${data.AGE} | Gender: ${data.GENDER} | 
+                        Comorbidities: ${data.diabetes_comorbidity + data.hypertension_comorbidity + data.ckd_comorbidity + data.chf_comorbidity + data.copd_comorbidity + data.cancer_comorbidity} | 
+                        Ventilation: ${data.resp_procedure === 1 ? 'Yes' : 'No'}
                     </div>
                 `;
             } else {
@@ -445,7 +485,7 @@
         1️⃣ Select a model | 2️⃣ Enter patient data or use preset | 3️⃣ Get prediction
     </p>
 
-    <form action="/predict/" method="post" onsubmit="predict(event)">
+    <form onsubmit="predict(event)">
         
         <!-- Model Selector -->
         <div class="model-selector">

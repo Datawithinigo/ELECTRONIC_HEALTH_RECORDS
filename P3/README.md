@@ -14,6 +14,12 @@ P3/
 │       ├── xgboost.pkl
 │       ├── random_forest.pkl
 │       └── logistic_regression.pkl
+├── results_images/                   # Visualizations (auto-generated)
+│   ├── feature_importance_xgboost.png
+│   ├── feature_importance_random_forest.png
+│   ├── feature_importance_logistic_regression.png
+│   ├── roc_curves_comparison.png
+│   └── model_comparison.png
 └── ../resources_p3/
     └── df_a3_andrea_v2.csv          # Training data
 ```
