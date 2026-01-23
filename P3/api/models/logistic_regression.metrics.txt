@@ -1,0 +1,9 @@
+MODEL: Logistic Regression
+TEST ACCURACY: 0.7366
+TEST AUC-ROC: 0.8310
+
+PERFORMANCE METRICS:
+  • Accuracy:   0.7366
+  • Precision:  0.2408
+  • Recall:     0.7776
+  • F1-Score:   0.3678

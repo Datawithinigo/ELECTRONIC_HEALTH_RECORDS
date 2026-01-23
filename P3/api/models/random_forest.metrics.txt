@@ -1,0 +1,9 @@
+MODEL: Random Forest
+TEST ACCURACY: 0.7747
+TEST AUC-ROC: 0.8423
+
+PERFORMANCE METRICS:
+  • Accuracy:   0.7747
+  • Precision:  0.2694
+  • Recall:     0.7515
+  • F1-Score:   0.3966

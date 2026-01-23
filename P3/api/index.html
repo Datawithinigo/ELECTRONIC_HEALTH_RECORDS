@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Page title -->
+    <title>ICU Mortality Prediction - Machine Learning Model</title>
+        
+    <!-- CSS -->
+    <style>
+        /* Page style */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        /* Page heading */
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #ffffff;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #ffffff;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        /* Form container */
+        form {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+        }
+
+        /* Model selector */
+        .model-selector {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            border: 2px solid #667eea;
+        }
+
+        .model-selector label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .model-selector select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .model-selector select:hover {
+            border-color: #764ba2;
+        }
+
+        /* Metrics display */
+        #metrics {
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            display: none;
+        }
+
+        #metrics h3 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        #metrics pre {
+            white-space: pre-wrap;
+            margin: 0;
+            font-size: 0.9rem;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Preset section */
+        .preset-section {
+            background: rgba(118, 75, 162, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px dashed #764ba2;
+        }
+
+        .preset-section label {
+            display: block;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .preset-section select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #764ba2;
+            border-radius: 8px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        /* Section headers */
+        .section-header {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+            margin: 20px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        /* Field grid */
+        .fields-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px 20px;
+            margin-bottom: 20px;
+        }
+
+        .field-full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Field styling */
+        .field label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .field input, .field select {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: #fff;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        .field input:focus, .field select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        .field-hint {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        /* Buttons */
+        .button-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .button-row button {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-clear {
+            background-color: #6B7280;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background-color: #4B5563;
+        }
+
+        /* Output box */
+        #output {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .output-survival {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .output-mortality {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .output-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid rgba(255,255,255,0.3);
+            font-size: 0.95rem;
+        }
+
+        .probability-bar {
+            background: rgba(255,255,255,0.3);
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .probability-fill {
+            height: 100%;
+            background: white;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .error {
+            background-color: #fee;
+            border: 2px solid #f88;
+            color: #c00;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .fields-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+
+    <script>
+        // Preset patient profiles
+        const presets = {
+            "": { label: "-- Select a preset or enter values manually --" },
+            "young_healthy": {
+                label: "🟢 Young Healthy Patient (Low Risk)",
+                age: 35, gender: "F", ethnicity: "WHITE",
+                diabetes: 0, hypertension: 0, ckd: 0, chf: 0, copd: 0, cancer: 0,
+                diagnosis: "trauma", resp: 0
+            },
+            "middle_aged_stable": {
+                label: "🟡 Middle-aged with Hypertension (Moderate Risk)",
+                age: 55, gender: "M", ethnicity: "WHITE",
+                diabetes: 0, hypertension: 1, ckd: 0, chf: 0, copd: 0, cancer: 0,
+                diagnosis: "cardiovascular", resp: 0
+            },
+            "elderly_cardiac": {
+                label: "🟠 Elderly Cardiac Patient (High Risk)",
+                age: 72, gender: "M", ethnicity: "WHITE",
+                diabetes: 1, hypertension: 1, ckd: 1, chf: 1, copd: 0, cancer: 0,
+                diagnosis: "cardiovascular", resp: 0
+            },
+            "critical_ventilated": {
+                label: "🔴 Critical with Ventilation (Very High Risk)",
+                age: 68, gender: "F", ethnicity: "BLACK",
+                diabetes: 1, hypertension: 1, ckd: 1, chf: 1, copd: 1, cancer: 0,
+                diagnosis: "respiratory", resp: 1
+            },
+            "cancer_patient": {
+                label: "🔴 Cancer Patient in ICU (Very High Risk)",
+                age: 64, gender: "M", ethnicity: "WHITE",
+                diabetes: 0, hypertension: 1, ckd: 0, chf: 0, copd: 0, cancer: 1,
+                diagnosis: "oncology", resp: 1
+            }
+        };
+
+        // Apply preset values
+        function applyPreset() {
+            const presetKey = document.getElementById("preset_selector").value;
+            if (!presetKey) return;
+            
+            const preset = presets[presetKey];
+            
+            document.getElementById("age").value = preset.age;
+            document.getElementById("gender").value = preset.gender;
+            document.getElementById("ethnicity_group").value = preset.ethnicity;
+            document.getElementById("diabetes_comorbidity").value = preset.diabetes;
+            document.getElementById("hypertension_comorbidity").value = preset.hypertension;
+            document.getElementById("ckd_comorbidity").value = preset.ckd;
+            document.getElementById("chf_comorbidity").value = preset.chf;
+            document.getElementById("copd_comorbidity").value = preset.copd;
+            document.getElementById("cancer_comorbidity").value = preset.cancer;
+            document.getElementById("diagnosis_group").value = preset.diagnosis;
+            document.getElementById("resp_procedure").value = preset.resp;
+        }
+
+        // Load available models
+        async function loadModels() {
+            const res = await fetch("/models/");
+            const models = await res.json();
+
+            const sel = document.getElementById("model_name");
+            sel.innerHTML = models
+                .map(m => `<option value="${m}">${m.replace(".pkl", "")}</option>`)
+                .join("");
+
+            if (models.length) loadMetrics();
+        }
+
+        // Load model metrics
+        async function loadMetrics() {
+            const modelName = document.getElementById("model_name").value;
+            const metricsDiv = document.getElementById("metrics");
+            metricsDiv.style.display = "none";
+
+            const res = await fetch(`/metrics/?model_name=${encodeURIComponent(modelName)}`);
+            if (res.ok) {
+                const txt = await res.text();
+                metricsDiv.innerHTML = `<h3>📊 Model Performance Metrics</h3><pre>${txt}</pre>`;
+                metricsDiv.style.display = "block";
+            } else {
+                metricsDiv.innerHTML = `<div class="error">⚠️ Metrics not available for this model.</div>`;
+                metricsDiv.style.display = "block";
+            }
+        }
+
+        // Make prediction
+        async function predict(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            const res = await fetch(event.target.action, { method: "POST", body: formData });
+            const out = document.getElementById("output");
+            out.style.display = "block";
+
+            if (res.ok) {
+                const data = await res.json();
+                
+                const isMortality = data.prediction === 1;
+                out.className = isMortality ? "output-mortality" : "output-survival";
+                
+                out.innerHTML = `
+                    <div style="font-size: 1.5rem; margin-bottom: 10px;">
+                        ${data.risk_emoji} ${data.outcome_label}
+                    </div>
+                    <div style="font-size: 1.1rem; margin-bottom: 15px;">
+                        Risk Level: <strong>${data.risk_level}</strong>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: ${data.mortality_probability}%;">
+                            ${data.mortality_probability}%
+                        </div>
+                    </div>
+                    <div class="output-details">
+                        <strong>Model:</strong> ${data.model}<br>
+                        <strong>Mortality Probability:</strong> ${data.mortality_probability}%<br>
+                        <strong>Survival Probability:</strong> ${data.survival_probability}%<br>
+                        <hr style="border: 1px solid rgba(255,255,255,0.3); margin: 10px 0;">
+                        <strong>Patient Summary:</strong><br>
+                        Age: ${data.input_summary.age} | Gender: ${data.input_summary.gender} | 
+                        Comorbidities: ${data.input_summary.comorbidities} | 
+                        Ventilation: ${data.input_summary.resp_procedure}
+                    </div>
+                `;
+            } else {
+                const err = await res.json();
+                out.className = "error";
+                out.innerHTML = `<strong>❌ Error:</strong> ${err.detail}`;
+            }
+        }
+
+        // Clear form
+        function clearForm() {
+            document.getElementById("age").value = '';
+            document.getElementById("preset_selector").value = '';
+            
+            const selects = ['gender', 'ethnicity_group', 'diagnosis_group'];
+            selects.forEach(id => document.getElementById(id).selectedIndex = 0);
+            
+            const checkboxes = ['diabetes_comorbidity', 'hypertension_comorbidity', 
+                               'ckd_comorbidity', 'chf_comorbidity', 'copd_comorbidity', 
+                               'cancer_comorbidity', 'resp_procedure'];
+            checkboxes.forEach(id => document.getElementById(id).value = '0');
+            
+            document.getElementById('output').style.display = 'none';
+        }
+
+        document.addEventListener("DOMContentLoaded", loadModels);
+    </script>
+</head>
+
+<body>
+    <h1>🏥 ICU Mortality Prediction</h1>
+    
+    <p class="subtitle">
+        <strong>Predict ICU patient mortality risk using clinical data</strong><br>
+        1️⃣ Select a model | 2️⃣ Enter patient data or use preset | 3️⃣ Get prediction
+    </p>
+
+    <form action="/predict/" method="post" onsubmit="predict(event)">
+        
+        <!-- Model Selector -->
+        <div class="model-selector">
+            <label for="model_name">Choose Prediction Model:</label>
+            <select name="model_name" id="model_name" onchange="loadMetrics()"></select>
+            <div id="metrics"></div>
+        </div>
+
+        <!-- Preset Selector -->
+        <div class="preset-section">
+            <label for="preset_selector">Quick Test with Preset Patient:</label>
+            <select id="preset_selector" onchange="applyPreset()">
+                <option value="">-- Select a preset --</option>
+                <option value="young_healthy">🟢 Young Healthy Patient</option>
+                <option value="middle_aged_stable">🟡 Middle-aged with Hypertension</option>
+                <option value="elderly_cardiac">🟠 Elderly Cardiac Patient</option>
+                <option value="critical_ventilated">🔴 Critical with Ventilation</option>
+                <option value="cancer_patient">🔴 Cancer Patient in ICU</option>
+            </select>
+        </div>
+
+        <!-- Demographics Section -->
+        <div class="section-header">👤 Demographics</div>
+        <div class="fields-grid">
+            <div class="field">
+                <label for="age">Age (years):</label>
+                <input type="number" id="age" name="age" placeholder="e.g. 65" required min="18" max="100">
+                <div class="field-hint">Patient age at ICU admission (18-100)</div>
+            </div>
+
+            <div class="field">
+                <label for="gender">Gender:</label>
+                <select id="gender" name="gender" required>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
+            </div>
+
+            <div class="field field-full-width">
+                <label for="ethnicity_group">Ethnicity Group:</label>
+                <select id="ethnicity_group" name="ethnicity_group" required>
+                    <option value="WHITE">White</option>
+                    <option value="BLACK">Black</option>
+                    <option value="HISPANIC">Hispanic</option>
+                    <option value="ASIAN">Asian</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Comorbidities Section -->
+        <div class="section-header">🩺 Comorbidities</div>
+        <div class="fields-grid">
+            <div class="field">
+                <label for="diabetes_comorbidity">Diabetes:</label>
+                <select id="diabetes_comorbidity" name="diabetes_comorbidity" required>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="hypertension_comorbidity">Hypertension:</label>
+                <select id="hypertension_comorbidity" name="hypertension_comorbidity" required>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="ckd_comorbidity">Chronic Kidney Disease:</label>
+                <select id="ckd_comorbidity" name="ckd_comorbidity" required>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="chf_comorbidity">Congestive Heart Failure:</label>
+                <select id="chf_comorbidity" name="chf_comorbidity" required>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="copd_comorbidity">COPD:</label>
+                <select id="copd_comorbidity" name="copd_comorbidity" required>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="cancer_comorbidity">Cancer:</label>
+                <select id="cancer_comorbidity" name="cancer_comorbidity" required>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Clinical Information Section -->
+        <div class="section-header">🏥 Clinical Information</div>
+        <div class="fields-grid">
+            <div class="field field-full-width">
+                <label for="diagnosis_group">Primary Diagnosis:</label>
+                <select id="diagnosis_group" name="diagnosis_group" required>
+                    <option value="cardiovascular">Cardiovascular</option>
+                    <option value="neurological">Neurological</option>
+                    <option value="infectious">Infectious</option>
+                    <option value="renal">Renal</option>
+                    <option value="respiratory">Respiratory</option>
+                    <option value="oncology">Oncology</option>
+                    <option value="trauma">Trauma</option>
+                    <option value="gastrohepatic">Gastrohepatic</option>
+                    <option value="metabolic">Metabolic</option>
+                    <option value="psychiatric">Psychiatric</option>
+                    <option value="hematologic">Hematologic</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <div class="field field-full-width">
+                <label for="resp_procedure">Respiratory Support Required:</label>
+                <select id="resp_procedure" name="resp_procedure" required>
+                    <option value="0">No - Spontaneous breathing</option>
+                    <option value="1">Yes - Intubation/Ventilation needed</option>
+                </select>
+                <div class="field-hint">Was invasive ventilation or intubation required?</div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-row">
+            <button type="submit" class="btn-predict">🔮 Predict Mortality Risk</button>
+            <button type="button" class="btn-clear" onclick="clearForm()">🔄 Clear Form</button>
+        </div>
+
+        <!-- Output -->
+        <div id="output"></div>
+    </form>
+</body>
+</html>

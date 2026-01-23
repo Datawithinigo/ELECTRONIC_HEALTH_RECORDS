@@ -1,0 +1,9 @@
+MODEL: XGBoost
+TEST ACCURACY: 0.7313
+TEST AUC-ROC: 0.8406
+
+PERFORMANCE METRICS:
+  • Accuracy:   0.7313
+  • Precision:  0.2419
+  • Recall:     0.8096
+  • F1-Score:   0.3725
