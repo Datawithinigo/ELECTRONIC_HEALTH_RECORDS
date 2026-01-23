@@ -29,7 +29,7 @@ P3/
 ### 1. Train Models
 ```bash
 cd P3
-python mortality_prediction_models.py
+../.venv/bin/python mortality_prediction_models.py
 ```
 
 This will:
@@ -39,9 +39,10 @@ This will:
 
 ### 2. Start API
 ```bash
-cd api
-uvicorn mlapi:app --reload --port 8000
+../.venv/bin/uvicorn api.mlapi:app --reload --port 8000
 ```
+
+> **Note:** Run from `P3/` directory
 
 Visit: http://localhost:8000
 
