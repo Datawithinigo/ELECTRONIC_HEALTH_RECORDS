@@ -153,3 +153,194 @@ Si quieres, pégame aquí **las últimas ~80–150 líneas** del “script nuevo
 [3]: https://github.com/MIT-LCP/mimic-code/blob/main/mimic-iii/concepts/severityscores/sofa.sql?utm_source=chatgpt.com "sofa.sql - MIT-LCP/mimic-code"
 [4]: https://pmc.ncbi.nlm.nih.gov/articles/PMC1550848/?utm_source=chatgpt.com "A comparison of admission and worst 24-hour Acute ..."
 [5]: https://www.cinc.org/archives/2012/pdf/0257.pdf?utm_source=chatgpt.com "Predicting Mortality of ICU Patients using a Cascaded SVM ..."
+
+
+
+
+Sí: ese “pivot” (diagnóstico agrupado por sistema + necesidad de soporte respiratorio → mortalidad) es **mucho más defendible y acotado** que intentar clavar SOFA/APACHE completos si os faltan variables. Y además encaja perfecto con tu punto fuerte: **intervenciones respiratorias + motivos de ingreso bien caracterizados**.
+
+Aquí tienes una forma **muy clara** de clasificarlo y convertirlo en análisis + modelo.
+
+---
+
+## 1) Cómo clasificar los diagnósticos (3 opciones, de más rápida a más “pro”)
+
+### Opción A (rápida y sólida): capítulos ICD-10 por prefijo
+
+Agrupas por **primera letra/rango** del ICD-10 y lo mapeas a sistema. Esto es defendible porque ICD ya está organizado por capítulos/sistemas. ([doc.ukdataservice.ac.uk][1])
+
+Ejemplo directo (lo que tú ya estás haciendo):
+
+* **I00–I99** → Cardiovascular
+* **N00–N99** → Renal/Urinario
+* **G00–G99** → Neurológico
+* **F00–F99** → Psiquiátrico
+* **J00–J99** → Respiratorio
+* **K00–K95** → Digestivo
+* etc. ([IHACPA][2])
+
+✅ Ventaja: 0 dependencia externa, implementas en 10 min.
+⚠️ Límite: menos granular.
+
+### Opción B (mejor para research): CCSR (HCUP)
+
+Usa **Clinical Classifications Software Refined (CCSR)** que agrupa ICD-10-CM en categorías clínicas y **22 “body systems”**. Es literalmente una herramienta hecha para esto. ([hcup-us.ahrq.gov][3])
+
+✅ Ventaja: súper defendible en un paper-style.
+⚠️ Límite: requiere bajar el mapping.
+
+### Opción C (tu propia taxonomía)
+
+Válida si lo explicas bien: “Agrupamos diagnósticos en X dominios clínicos para reducir dimensionalidad”.
+✅ Ventaja: flexible.
+⚠️ Límite: más fácil que te pregunten “¿por qué así?”
+
+**Recomendación práctica:** haced A para entregar seguro; si os da tiempo, añadís B como “sensibility analysis”.
+
+---
+
+## 2) Cómo definir “soporte respiratorio” (exposición) sin liarla
+
+Define una variable ordinal (máxima intervención en primeras 24h):
+
+0. **Sin soporte**
+1. **Oxígeno** (nasal/mascarilla)
+2. **NIV** (CPAP/BiPAP)
+3. **IMV** (intubación / ventilación mecánica invasiva)
+
+Eso os permite:
+
+* tablas claras,
+* modelo interpretable,
+* y comparación por grupos.
+
+Además hay literatura suficiente para justificar que “tipo de soporte” y “ventilación” se asocian a resultados (aunque hay confusión por severidad). Por ejemplo: ventilación mecánica asociada a mayor mortalidad en cohortes de UCI cardiaca, y estudios comparando NIV vs oxígeno en subpoblaciones. ([PMC][4])
+
+---
+
+## 3) Qué pregunta exacta respondéis (y cómo se ve en resultados)
+
+### Pregunta principal (perfecta para entregar)
+
+**“¿Cómo cambia la mortalidad según (a) el tipo de diagnóstico y (b) la necesidad de soporte respiratorio en primeras 24h?”**
+
+### Hipótesis defendible
+
+El efecto del soporte respiratorio **no es igual** en todos los dominios diagnósticos → interacción.
+
+---
+
+## 4) Análisis estadístico mínimo pero “de calidad”
+
+### 4.1 Descriptivo (1 slide/figura)
+
+Tabla por grupo diagnóstico:
+
+* N pacientes
+* % con oxígeno / NIV / IMV
+* mortalidad (ICU u hospitalaria)
+
+### 4.2 Modelo principal (logístico con interacción)
+
+**Outcome:** mortalidad (0/1).
+**Modelo:**
+[
+\text{mortalidad} \sim \text{soporte} + \text{grupo_dx} + (\text{soporte} \times \text{grupo_dx}) + \text{covariables}
+]
+
+**Covariables mínimas** (para que no os digan “confounding”):
+
+* edad, sexo
+* “baseline severity proxy” (por ejemplo: lactato, MAP min, SpO2 min, creatinina max… lo que tengáis)
+* comorbilidad simple si existe
+
+Con eso ya puedes reportar:
+
+* OR del soporte respiratorio dentro de cada grupo dx
+* y/o diferencias de riesgo predichas
+
+---
+
+## 5) Modelo “ML” (sin pelearse con PCA+SVM)
+
+Si os exigen PCA+SVM, se puede, pero para *presentación* yo haría:
+
+* **Logistic regression regularizada** (interpretable) como baseline
+* **SVM** como comparativa
+
+Si insistís con PCA+SVM:
+
+* One-hot a `grupo_dx` y `soporte`
+* escalado
+* PCA opcional (pero ojo: PCA con muchas dummies a veces no aporta)
+
+---
+
+## 6) Código (plantilla ultra rápida)
+
+### 6.1 Map ICD-10 → grupo (Opción A)
+
+```python
+def icd10_to_group(icd):
+    if icd is None: 
+        return "Unknown"
+    icd = icd.strip().upper()
+
+    # usa primera letra y rango si tienes numérico
+    letter = icd[0]
+
+    if letter == "I": return "Cardiovascular"
+    if letter == "N": return "Renal"
+    if letter == "G": return "Neurologic"
+    if letter == "F": return "Psychiatric"
+    if letter == "J": return "Respiratory"
+    if letter == "K": return "Gastrointestinal"
+    # ... añade lo que necesitéis
+    return "Other"
+```
+
+### 6.2 Soporte respiratorio (máximo en 24h)
+
+```python
+support_rank = {"none":0, "o2":1, "niv":2, "imv":3}
+
+def max_support_first24h(events):
+    # events: lista/df con soporte detectado en 24h
+    # devuelve el máximo
+    if len(events) == 0:
+        return 0
+    return max(support_rank[x] for x in events)
+```
+
+---
+
+## 7) Papers para justificar (sin volverte loco)
+
+* **Clasificación diagnóstica**: ICD-10 estructura por capítulos/sistemas (os justifica vuestro grouping). ([doc.ukdataservice.ac.uk][1])
+* **Grouping estándar**: CCSR (HCUP) agrupa ICD-10-CM en categorías clínicas y 22 sistemas. ([hcup-us.ahrq.gov][3])
+* **Respiratory support y mortalidad**: ejemplos en cohortes/ensayos (ventilación asociada a outcomes; NIV vs oxígeno según contexto). ([PMC][4])
+* Si queréis algo súper “24h” para ventilación: asociación de parámetros de ventilación tempranos con mortalidad (primeras 24h). ([journal.chestnet.org][5])
+
+---
+
+### Mi recomendación final (práctica)
+
+1. Quedaos con **ICD-10 capítulo → grupo** + **soporte respiratorio en 24h** + **mortalidad**.
+2. Haced **descriptivo + logística con interacción**.
+3. Si sobra tiempo, añadid el modelo ML (SVM) como “bonus”.
+
+Si me pegas **un ejemplo real** de:
+
+* cómo tienes los diagnósticos (código ICD o texto),
+* y cómo detectas las intervenciones respiratorias (campos/eventos),
+  te devuelvo **el mapping exacto** y un bloque de código que ya genere el dataframe final (`stay_id`, `grupo_dx`, `support_24h`, `mortality`, covariables).
+
+[1]: https://doc.ukdataservice.ac.uk/doc/8770/mrdoc/pdf/icd-10_international_statistical_classification_of_diseases_and_related_health_problems-v2-eng.pdf?utm_source=chatgpt.com "ICD-10 International statistical classification of diseases ..."
+[2]: https://www.ihacpa.gov.au/sites/default/files/2022-08/icd-10-am_chronicle_-_eleventh_edition.pdf?utm_source=chatgpt.com "ICD-10-AM Disease Code List"
+[3]: https://hcup-us.ahrq.gov/toolssoftware/ccsr/dxccsr.jsp?utm_source=chatgpt.com "Clinical Classifications Software Refined (CCSR) for ICD-10 ..."
+[4]: https://pmc.ncbi.nlm.nih.gov/articles/PMC12332906/?utm_source=chatgpt.com "A propensity score-matched cohort study"
+[5]: https://journal.chestnet.org/article/S0012-3692%2825%2900403-9/fulltext?utm_source=chatgpt.com "The Association Between Mechanical Power Within the First ..."
+
+
+
+GABRI : PRINCIPALMENTE QUEDARNOS CON demographics y pre-existing conditions
