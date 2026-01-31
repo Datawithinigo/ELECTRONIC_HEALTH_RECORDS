@@ -503,7 +503,7 @@ def main():
     print("="*70)
     
     # File path
-    filepath = "resources_p3/df_a3_andrea_v2.csv"
+    filepath = "P3/resources_p3/df_a3_andrea_v2.csv"
     
     # 1. Load and preprocess data
     df = load_and_preprocess_data(filepath)

@@ -346,35 +346,75 @@
         async function loadModels() {
             const res = await fetch("/models");
             const data = await res.json();
-            const models = data.models || [];
-
+            
             const sel = document.getElementById("model_name");
-            sel.innerHTML = models
-                .map(m => `<option value="${m}">${m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>`)
-                .join("");
+            let options = '<optgroup label="⭐ SOFA Models (Best Performance - AUC 0.90)">';
+            
+            // Add SOFA models
+            if (data.sofa_models && data.sofa_models.models) {
+                data.sofa_models.models.forEach(m => {
+                    const displayName = m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    const isRecommended = m === data.recommended ? ' ⭐ RECOMMENDED' : '';
+                    options += `<option value="${m}">${displayName}${isRecommended}</option>`;
+                });
+            }
+            
+            options += '</optgroup>';
+            options += '<optgroup label="Basic Models (Good for Screening - AUC 0.84)">';
+            
+            // Add basic models
+            if (data.basic_models && data.basic_models.models) {
+                data.basic_models.models.forEach(m => {
+                    const displayName = m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    options += `<option value="${m}">${displayName}</option>`;
+                });
+            }
+            
+            options += '</optgroup>';
+            sel.innerHTML = options;
 
-            // Set default model
-            if (data.default) {
-                sel.value = data.default;
+            // Set recommended model as default
+            if (data.recommended) {
+                sel.value = data.recommended;
             }
 
-            if (models.length) loadMetrics();
+            loadMetrics();
         }
 
-        // Load model metrics
+        // Load model metrics and toggle SOFA section
         async function loadMetrics() {
             const modelName = document.getElementById("model_name").value;
             const metricsDiv = document.getElementById("metrics");
+            const sofaSection = document.getElementById("sofa_section");
+            const isSofa = modelName.includes('_sofa');
+            
+            // Show/hide SOFA section
+            if (isSofa) {
+                sofaSection.style.display = "block";
+            } else {
+                sofaSection.style.display = "none";
+            }
             
             // Display model info
             const modelInfo = {
-                'xgboost': 'XGBoost - Best Performance (AUC: 0.841, Accuracy: 73.1%)',
-                'random_forest': 'Random Forest - Best Balance (AUC: 0.842, Accuracy: 77.5%) ⭐ Recommended',
-                'logistic_regression': 'Logistic Regression - Most Interpretable (AUC: 0.831, Accuracy: 73.7%)'
+                // Basic models
+                'xgboost': '🔹 Basic Model | AUC: 0.841 | Accuracy: 73.1% | Features: 12',
+                'random_forest': '🔹 Basic Model | AUC: 0.842 | Accuracy: 77.5% | Features: 12',
+                'logistic_regression': '🔹 Basic Model | AUC: 0.831 | Accuracy: 73.7% | Features: 12',
+                'lightgbm': '🔹 Basic Model | AUC: 0.840 | Accuracy: 77% | Features: 12',
+                
+                // SOFA models
+                'xgboost_sofa': '⭐ SOFA Model | AUC: 0.898 | Accuracy: 87.6% | Features: 30-35 | Includes organ function assessment',
+                'random_forest_sofa': '⭐ SOFA Model | AUC: 0.900 | Accuracy: 91.4% | Features: 30-35 | BEST PERFORMANCE 🏆',
+                'logistic_regression_sofa': '⭐ SOFA Model | AUC: 0.878 | Accuracy: 78.9% | Features: 30-35 | Most interpretable',
+                'lightgbm_sofa': '⭐ SOFA Model | AUC: 0.881 | Accuracy: 91.1% | Features: 30-35 | High precision'
             };
             
             if (modelInfo[modelName]) {
-                metricsDiv.innerHTML = `<h3>📊 Model Info</h3><p>${modelInfo[modelName]}</p>`;
+                const infoMsg = isSofa ? 
+                    '<p style="color: #10b981; font-weight: 600; margin-top: 10px;">✅ SOFA section enabled below for enhanced prediction</p>' : 
+                    '';
+                metricsDiv.innerHTML = `<h3>📊 Model Info</h3><p>${modelInfo[modelName]}</p>${infoMsg}`;
                 metricsDiv.style.display = "block";
             } else {
                 metricsDiv.style.display = "none";
@@ -389,23 +429,58 @@
             
             // Get model name
             const modelName = document.getElementById("model_name").value;
+            const isSofa = modelName.includes('_sofa');
             
-            // Convert form data to JSON
-            const data = {
-                GENDER: formData.get("gender"),
-                AGE: parseInt(formData.get("age")),
-                ETHNICITY_GROUP: formData.get("ethnicity_group"),
-                diabetes_comorbidity: parseInt(formData.get("diabetes_comorbidity")),
-                hypertension_comorbidity: parseInt(formData.get("hypertension_comorbidity")),
-                ckd_comorbidity: parseInt(formData.get("ckd_comorbidity")),
-                chf_comorbidity: parseInt(formData.get("chf_comorbidity")),
-                copd_comorbidity: parseInt(formData.get("copd_comorbidity")),
-                cancer_comorbidity: parseInt(formData.get("cancer_comorbidity")),
-                diagnosis_group: formData.get("diagnosis_group"),
-                resp_procedure: parseInt(formData.get("resp_procedure"))
-            };
+            // Prepare data based on model type
+            let data, endpoint;
+            
+            if (isSofa) {
+                // SOFA model data format
+                data = {
+                    gender: formData.get("gender"),
+                    age: parseInt(formData.get("age")),
+                    ethnicity_group: formData.get("ethnicity_group"),
+                    flag_diabetes: parseInt(formData.get("diabetes_comorbidity")),
+                    flag_hypertension: parseInt(formData.get("hypertension_comorbidity")),
+                    flag_ckd: parseInt(formData.get("ckd_comorbidity")),
+                    flag_chf: parseInt(formData.get("chf_comorbidity")),
+                    flag_copd: parseInt(formData.get("copd_comorbidity")),
+                    flag_cancer: parseInt(formData.get("cancer_comorbidity")),
+                    diagnosis_group: formData.get("diagnosis_group"),
+                    resp_procedure: parseInt(formData.get("resp_procedure")),
+                    // SOFA scores
+                    total_sofa: parseFloat(formData.get("total_sofa") || 5),
+                    resp_score: parseFloat(formData.get("resp_score") || 1),
+                    cv_score: parseFloat(formData.get("cv_score") || 1),
+                    liver_score: parseFloat(formData.get("liver_score") || 0),
+                    cns_score: parseFloat(formData.get("cns_score") || 1),
+                    sofa_coag: parseFloat(formData.get("sofa_coag") || 0),
+                    renal_score: parseFloat(formData.get("renal_score") || 1),
+                    bmi_baseline: parseFloat(formData.get("bmi_baseline") || 25),
+                    any_dobutamine: parseInt(formData.get("any_dobutamine") || 0),
+                    any_norepi: parseInt(formData.get("any_norepi") || 0),
+                    any_vaso: parseInt(formData.get("any_vaso") || 0)
+                };
+                endpoint = `/predict/sofa/${modelName}`;
+            } else {
+                // Basic model data format
+                data = {
+                    GENDER: formData.get("gender"),
+                    AGE: parseInt(formData.get("age")),
+                    ETHNICITY_GROUP: formData.get("ethnicity_group"),
+                    diabetes_comorbidity: parseInt(formData.get("diabetes_comorbidity")),
+                    hypertension_comorbidity: parseInt(formData.get("hypertension_comorbidity")),
+                    ckd_comorbidity: parseInt(formData.get("ckd_comorbidity")),
+                    chf_comorbidity: parseInt(formData.get("chf_comorbidity")),
+                    copd_comorbidity: parseInt(formData.get("copd_comorbidity")),
+                    cancer_comorbidity: parseInt(formData.get("cancer_comorbidity")),
+                    diagnosis_group: formData.get("diagnosis_group"),
+                    resp_procedure: parseInt(formData.get("resp_procedure"))
+                };
+                endpoint = `/predict/basic/${modelName}`;
+            }
 
-            const res = await fetch(`/predict/${modelName}`, { 
+            const res = await fetch(endpoint, { 
                 method: "POST", 
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
@@ -427,12 +502,32 @@
                     'low': '🟢'
                 }[result.risk_level] || '⚪';
                 
+                // Calculate comorbidities count
+                const comorbiditiesCount = (isSofa ? data.flag_diabetes : data.diabetes_comorbidity) + 
+                    (isSofa ? data.flag_hypertension : data.hypertension_comorbidity) + 
+                    (isSofa ? data.flag_ckd : data.ckd_comorbidity) + 
+                    (isSofa ? data.flag_chf : data.chf_comorbidity) + 
+                    (isSofa ? data.flag_copd : data.copd_comorbidity) + 
+                    (isSofa ? data.flag_cancer : data.cancer_comorbidity);
+                
+                const age = isSofa ? data.age : data.AGE;
+                const gender = isSofa ? data.gender : data.GENDER;
+                const ventilation = data.resp_procedure === 1 ? 'Yes' : 'No';
+                
+                // Build SOFA-specific info
+                let sofaInfo = '';
+                if (isSofa && result.sofa_severity) {
+                    sofaInfo = `<br><strong>SOFA Severity:</strong> ${result.sofa_severity} (Total: ${data.total_sofa})<br>
+                        <strong>Organ Failures:</strong> ${result.organ_failures}/6 organs`;
+                }
+                
                 out.innerHTML = `
                     <div style="font-size: 1.5rem; margin-bottom: 10px;">
                         ${riskEmoji} ${result.prediction}
                     </div>
                     <div style="font-size: 1.1rem; margin-bottom: 15px;">
                         Risk Level: <strong>${result.risk_level.toUpperCase()}</strong>
+                        ${isSofa ? '<br><small style="font-size: 0.85rem;">⭐ Enhanced SOFA Model Prediction</small>' : ''}
                     </div>
                     <div class="probability-bar">
                         <div class="probability-fill" style="width: ${result.mortality_probability}%;">
@@ -441,13 +536,15 @@
                     </div>
                     <div class="output-details">
                         <strong>Model:</strong> ${result.model.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}<br>
+                        <strong>Model Type:</strong> ${result.model_type === 'sofa' ? '⭐ SOFA Enhanced' : '🔹 Basic'}<br>
                         <strong>Mortality Probability:</strong> ${result.mortality_probability}%<br>
-                        <strong>Survival Probability:</strong> ${(100 - result.mortality_probability).toFixed(2)}%<br>
+                        <strong>Survival Probability:</strong> ${(100 - result.mortality_probability).toFixed(2)}%
+                        ${sofaInfo}
                         <hr style="border: 1px solid rgba(255,255,255,0.3); margin: 10px 0;">
                         <strong>Patient Summary:</strong><br>
-                        Age: ${data.AGE} | Gender: ${data.GENDER} | 
-                        Comorbidities: ${data.diabetes_comorbidity + data.hypertension_comorbidity + data.ckd_comorbidity + data.chf_comorbidity + data.copd_comorbidity + data.cancer_comorbidity} | 
-                        Ventilation: ${data.resp_procedure === 1 ? 'Yes' : 'No'}
+                        Age: ${age} | Gender: ${gender} | 
+                        Comorbidities: ${comorbiditiesCount} | 
+                        Ventilation: ${ventilation}
                     </div>
                 `;
             } else {
@@ -616,6 +713,93 @@
                     <option value="1">Yes - Intubation/Ventilation needed</option>
                 </select>
                 <div class="field-hint">Was invasive ventilation or intubation required?</div>
+            </div>
+        </div>
+
+        <!-- SOFA Scores Section (only visible for SOFA models) -->
+        <div id="sofa_section" style="display: none;">
+            <div class="section-header" style="color: #10b981; border-bottom-color: #10b981;">
+                ⭐ SOFA Scores (Enhanced Prediction)
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #10b981;">
+                <p style="margin: 0; color: #333; font-size: 0.9rem;">
+                    <strong>📊 SOFA (Sequential Organ Failure Assessment)</strong><br>
+                    Enter organ function scores for enhanced mortality prediction (0-4 scale for most, 0-24 for total).
+                </p>
+            </div>
+            
+            <div class="fields-grid">
+                <div class="field">
+                    <label for="total_sofa">Total SOFA Score <small style="color: #999; font-weight: normal;">(Range: 0-24)</small></label>
+                    <input type="number" id="total_sofa" name="total_sofa" placeholder="0-24" min="0" max="24" step="0.1" value="5">
+                    <div class="field-hint">Sum of all organ scores | 0-6: Low | 7-10: Moderate | 11-15: High | 16-24: Critical</div>
+                </div>
+
+                <div class="field">
+                    <label for="bmi_baseline">BMI <small style="color: #999; font-weight: normal;">(Normal: 18.5-24.9)</small></label>
+                    <input type="number" id="bmi_baseline" name="bmi_baseline" placeholder="e.g. 25" min="10" max="60" step="0.1" value="25">
+                    <div class="field-hint">Body Mass Index | Underweight: <18.5 | Overweight: 25-29.9 | Obese: ≥30</div>
+                </div>
+
+                <div class="field">
+                    <label for="resp_score">Respiratory Score <small style="color: #999; font-weight: normal;">(0-4)</small></label>
+                    <input type="number" id="resp_score" name="resp_score" placeholder="0-4" min="0" max="4" step="0.1" value="1">
+                    <div class="field-hint">PaO2/FiO2 ratio | 0: ≥400 | 1: <400 | 2: <300 | 3: <200 with vent | 4: <100 with vent</div>
+                </div>
+
+                <div class="field">
+                    <label for="cv_score">Cardiovascular Score <small style="color: #999; font-weight: normal;">(0-4)</small></label>
+                    <input type="number" id="cv_score" name="cv_score" placeholder="0-4" min="0" max="4" step="0.1" value="1">
+                    <div class="field-hint">MAP and vasopressors | 0: MAP ≥70 | 1: MAP <70 | 2-4: Increasing vasopressor needs</div>
+                </div>
+
+                <div class="field">
+                    <label for="liver_score">Liver Score <small style="color: #999; font-weight: normal;">(0-4)</small></label>
+                    <input type="number" id="liver_score" name="liver_score" placeholder="0-4" min="0" max="4" step="0.1" value="0">
+                    <div class="field-hint">Bilirubin | 0: <1.2 mg/dL | 1: 1.2-1.9 | 2: 2.0-5.9 | 3: 6.0-11.9 | 4: ≥12.0</div>
+                </div>
+
+                <div class="field">
+                    <label for="cns_score">CNS Score <small style="color: #999; font-weight: normal;">(0-4)</small></label>
+                    <input type="number" id="cns_score" name="cns_score" placeholder="0-4" min="0" max="4" step="0.1" value="1">
+                    <div class="field-hint">Glasgow Coma Scale | 0: 15 | 1: 13-14 | 2: 10-12 | 3: 6-9 | 4: <6</div>
+                </div>
+
+                <div class="field">
+                    <label for="sofa_coag">Coagulation Score <small style="color: #999; font-weight: normal;">(0-4)</small></label>
+                    <input type="number" id="sofa_coag" name="sofa_coag" placeholder="0-4" min="0" max="4" step="0.1" value="0">
+                    <div class="field-hint">Platelets (×10³/µL) | 0: ≥150 | 1: <150 | 2: <100 | 3: <50 | 4: <20</div>
+                </div>
+
+                <div class="field">
+                    <label for="renal_score">Renal Score <small style="color: #999; font-weight: normal;">(0-4)</small></label>
+                    <input type="number" id="renal_score" name="renal_score" placeholder="0-4" min="0" max="4" step="0.1" value="1">
+                    <div class="field-hint">Creatinine (mg/dL) | 0: <1.2 | 1: 1.2-1.9 | 2: 2.0-3.4 | 3: 3.5-4.9 | 4: ≥5.0</div>
+                </div>
+
+                <div class="field">
+                    <label for="any_dobutamine">Dobutamine Use:</label>
+                    <select id="any_dobutamine" name="any_dobutamine">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="any_norepi">Norepinephrine Use:</label>
+                    <select id="any_norepi" name="any_norepi">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="any_vaso">Any Vasopressor:</label>
+                    <select id="any_vaso" name="any_vaso">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
             </div>
         </div>
 
