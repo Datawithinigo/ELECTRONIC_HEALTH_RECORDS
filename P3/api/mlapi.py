@@ -84,7 +84,8 @@ class PatientDataSOFA(BaseModel):
 
 @app.get("/")
 def read_root():
-    return FileResponse("index.html")
+    index_path = Path(__file__).parent / "index.html"
+    return FileResponse(index_path)
 
 
 @app.get("/models")

@@ -17,8 +17,14 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import (
-    roc_auc_score, roc_curve, confusion_matrix, classification_report,
-    accuracy_score, precision_score, recall_score, f1_score
+    roc_auc_score
+    , roc_curve
+    , confusion_matrix
+    , classification_report
+    , accuracy_score
+    , precision_score
+    , recall_score
+    , f1_score
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -78,9 +84,12 @@ def feature_engineering(df):
     
     # Create comorbidity count
     comorbidity_cols = [
-        'diabetes_comorbidity', 'hypertension_comorbidity', 
-        'ckd_comorbidity', 'chf_comorbidity', 
-        'copd_comorbidity', 'cancer_comorbidity'
+        'diabetes_comorbidity'
+        , 'hypertension_comorbidity'
+        , 'ckd_comorbidity'
+        , 'chf_comorbidity' 
+        , 'copd_comorbidity'
+        , 'cancer_comorbidity'
     ]
     
     available_comorbidities = [col for col in comorbidity_cols if col in df_model.columns]
@@ -590,12 +599,26 @@ def save_models_for_api(xgb_model, rf_model, lr_model, feature_names, label_enco
     
     # Save model bundles
     bundles = {
-        "xgboost.pkl": {"model": xgb_model, "feature_names": feature_names, 
-                        "label_encoders": label_encoders, "scaler": None},
-        "random_forest.pkl": {"model": rf_model, "feature_names": feature_names,
-                              "label_encoders": label_encoders, "scaler": None},
-        "logistic_regression.pkl": {"model": lr_model, "feature_names": feature_names,
-                                    "label_encoders": label_encoders, "scaler": scaler}
+        "xgboost.pkl": {
+            "model": xgb_model
+            , "feature_names": feature_names
+            , "label_encoders": label_encoders
+            , "scaler": None
+        },
+        
+        "random_forest.pkl": {
+            "model": rf_model
+            , "feature_names": feature_names
+            , "label_encoders": label_encoders
+            , "scaler": None
+        },
+        
+        "logistic_regression.pkl": {
+            "model": lr_model
+            , "feature_names": feature_names
+            , "label_encoders": label_encoders
+            , "scaler": scaler
+        }
     }
     
     for filename, bundle in bundles.items():

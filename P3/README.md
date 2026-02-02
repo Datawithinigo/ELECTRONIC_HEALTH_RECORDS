@@ -40,11 +40,24 @@ This will:
 ### 2. Start API
 ```bash
 ../.venv/bin/uvicorn api.mlapi:app --reload --port 8000
+
+# good one: 
+source ../.venv/bin/activate && uvicorn api.mlapi:app --reload --port 8000
 ```
 
 > **Note:** Run from `P3/` directory
 
 Visit: http://localhost:8000
+
+
+### 2.1. Share url with the presentation (MIDUDEV) : 
+```bash
+brew install cloudflared
+# change for your url 
+cloudflared tunnel --url http://127.0.0.1:8000/
+
+```
+
 
 ### 3. Make Predictions
 

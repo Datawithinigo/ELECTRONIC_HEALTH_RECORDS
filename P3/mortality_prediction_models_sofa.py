@@ -23,13 +23,9 @@ from sklearn.metrics import (
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
-try:
-    import lightgbm as lgb
-    LIGHTGBM_AVAILABLE = True
-except ImportError:
-    LIGHTGBM_AVAILABLE = False
-    print("⚠️  LightGBM not available. Install with: pip install lightgbm")
+import lightgbm as lgb
 import warnings
+
 warnings.filterwarnings('ignore')
 
 # Set random seed for reproducibility
@@ -71,8 +67,20 @@ def feature_engineering(df):
     df_model.columns = df_model.columns.str.lower()
     
     # Remove temporal variables that cause data leakage
-    leakage_cols = ['icu_los_hours', 'hosp_los_hours', 'outtime', 'hosp_disch', 'dod', 
-                    'subject_id', 'hadm_id', 'icustay_id', 'intime', 'hosp_admit', 'dob']
+    leakage_cols = [
+        'icu_los_hours'
+        , 'hosp_los_hours'
+        , 'outtime'
+        , 'hosp_disch'
+        , 'dod'
+        , 'subject_id'
+        , 'hadm_id'
+        , 'icustay_id'
+        , 'intime'
+        , 'hosp_admit'
+        , 'dob'
+    ]
+
     df_model = df_model.drop(columns=[col for col in leakage_cols if col in df_model.columns])
     
     # Remove ICD9_CODE and LONG_TITLE (already captured in diagnosis_group)
@@ -84,11 +92,19 @@ def feature_engineering(df):
     print("\n🔧 ADVANCED FEATURE ENGINEERING:")
     
     # 1. Create comorbidity count
-    comorbidity_cols = ['flag_diabetes', 'flag_hypertension', 'flag_ckd',
-                        'flag_chf', 'flag_copd', 'flag_cancer']
+    comorbidity_cols = [
+        'flag_diabetes'
+        , 'flag_hypertension'
+        , 'flag_ckd'
+        , 'flag_chf'
+        , 'flag_copd'
+        , 'flag_cancer'  # not sure 
+    ]
     available_comorbidities = [col for col in comorbidity_cols if col in df_model.columns]
+
     if available_comorbidities:
         df_model['comorbidity_count'] = df_model[available_comorbidities].sum(axis=1)
+
         print(f"  ✓ Comorbidity count created (mean: {df_model['comorbidity_count'].mean():.2f})")
     
     # 2. BMI categories
@@ -113,8 +129,15 @@ def feature_engineering(df):
         print(f"  ✓ SOFA severity categories created")
     
     # 5. Organ failure count (SOFA subscores > 2)
-    sofa_subscores = ['resp_score', 'cv_score', 'liver_score', 
-                      'cns_score', 'sofa_coag', 'renal_score']
+    sofa_subscores = [
+        'resp_score'
+        , 'cv_score'
+        , 'liver_score'
+        , 'cns_score'
+        , 'sofa_coag'
+        , 'renal_score'
+    ]
+
     available_sofa = [col for col in sofa_subscores if col in df_model.columns]
     if available_sofa:
         df_model['organ_failures'] = (df_model[available_sofa] > 2).sum(axis=1)
@@ -201,9 +224,21 @@ def prepare_train_test_split(df_model):
         label_encoders[col] = le
         print(f"  - {col}: {len(le.classes_)} categories")
     
+    # Check for any remaining NaN values after encoding
+    if X_encoded.isnull().any().any():
+        print("\n⚠️  Warning: NaN values found after encoding. Applying final imputation...")
+        for col in X_encoded.columns:
+            if X_encoded[col].isnull().any():
+                X_encoded[col].fillna(X_encoded[col].median(), inplace=True)
+                print(f"  - Imputed {col} with median")
+    
     # Train-test split (80-20)
     X_train, X_test, y_train, y_test = train_test_split(
-        X_encoded, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
+        X_encoded
+        , y
+        , test_size=0.2
+        , random_state=RANDOM_STATE
+        , stratify=y
     )
     
     print(f"\nTrain set: {X_train.shape[0]} samples")
@@ -215,6 +250,15 @@ def prepare_train_test_split(df_model):
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
+    
+    # Check for NaN values after scaling
+    if np.isnan(X_train_scaled).any():
+        print("\n⚠️  Warning: NaN values found after scaling. Replacing with 0...")
+        X_train_scaled = np.nan_to_num(X_train_scaled, nan=0.0)
+
+    if np.isnan(X_test_scaled).any():
+        print("⚠️  Warning: NaN values found in test set after scaling. Replacing with 0...")
+        X_test_scaled = np.nan_to_num(X_test_scaled, nan=0.0)
     
     return X_train, X_test, y_train, y_test, X_train_scaled, X_test_scaled, X_encoded.columns.tolist()
 
@@ -340,10 +384,6 @@ def train_lightgbm(X_train, y_train):
     print("\n" + "=" * 70)
     print("MODEL 4: LightGBM (FASTER ALTERNATIVE)")
     print("=" * 70)
-    
-    if not LIGHTGBM_AVAILABLE:
-        print("⚠️  LightGBM not available. Skipping...")
-        return None
     
     # Train model
     lgb_model = lgb.LGBMClassifier(
@@ -646,7 +686,7 @@ def main():
     xgb_model = train_xgboost(X_train, y_train, X_test, y_test)
     rf_model = train_random_forest(X_train, y_train)
     lr_model = train_logistic_regression(X_train_scaled, y_train)
-    lgb_model = train_lightgbm(X_train, y_train) if LIGHTGBM_AVAILABLE else None
+    lgb_model = train_lightgbm(X_train, y_train) 
     
     # 4. Evaluate models
     results = []
@@ -715,17 +755,34 @@ def save_models_for_api(xgb_model, rf_model, lr_model, lgb_model, feature_names,
     
     # Save model bundles with _sofa suffix
     bundles = {
-        "xgboost_sofa.pkl": {"model": xgb_model, "feature_names": feature_names, 
-                        "label_encoders": label_encoders, "scaler": None},
-        "random_forest_sofa.pkl": {"model": rf_model, "feature_names": feature_names,
-                              "label_encoders": label_encoders, "scaler": None},
-        "logistic_regression_sofa.pkl": {"model": lr_model, "feature_names": feature_names,
-                                    "label_encoders": label_encoders, "scaler": scaler}
+        "xgboost_sofa.pkl": {
+            "model": xgb_model
+            , "feature_names": feature_names
+            , "label_encoders": label_encoders, "scaler": None
+        },
+        
+        "random_forest_sofa.pkl": {
+            "model": rf_model
+            , "feature_names": feature_names
+            ,"label_encoders": label_encoders
+            , "scaler": None
+        },
+
+        "logistic_regression_sofa.pkl": {
+            "model": lr_model
+            , "feature_names": feature_names
+            , "label_encoders": label_encoders
+            , "scaler": scaler
+        }
     }
     
     if lgb_model is not None:
-        bundles["lightgbm_sofa.pkl"] = {"model": lgb_model, "feature_names": feature_names,
-                                   "label_encoders": label_encoders, "scaler": None}
+        bundles["lightgbm_sofa.pkl"] = {
+            "model": lgb_model
+            , "feature_names": feature_names
+            ,"label_encoders": label_encoders
+            , "scaler": None
+        }
     
     for filename, bundle in bundles.items():
         joblib.dump(bundle, models_dir / filename)

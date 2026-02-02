@@ -138,18 +138,27 @@ Parameters:
 ### 1.5 Key Advantages
 
 ✅ **Superior Predictive Performance:** AUC ~0.90 (Excellent discrimination)
+
 ✅ **Clinical Relevance:** Uses established ICU assessment tools
+
 ✅ **Organ-Specific Insights:** Identifies which organ systems are failing
+
 ✅ **Comprehensive Assessment:** Captures both static (comorbidities) and dynamic (organ function) factors
+
 ✅ **Enhanced Precision:** 53% precision (vs 27% in Basic) - fewer false alarms
+
 ✅ **Better Specificity:** 94.2% - excellent at identifying survivors
+
 ✅ **Actionable Intelligence:** SOFA severity and organ failure counts guide intervention
 
 ### 1.6 Limitations
 
 ⚠️ **Data Requirements:** Requires detailed clinical assessments and laboratory values
+
 ⚠️ **Collection Complexity:** SOFA scores require multiple tests (blood gases, platelets, creatinine, etc.)
+
 ⚠️ **Time Dependency:** Some scores may not be available immediately at admission
+
 ⚠️ **Resource Intensive:** More expensive in terms of data collection
 
 ---
@@ -250,19 +259,29 @@ Parameters:
 ### 2.5 Key Advantages
 
 ✅ **Easy Data Collection:** All features typically available at admission
+
 ✅ **Fast Assessment:** No need for laboratory results or specialized scoring
+
 ✅ **Simplicity:** Straightforward interpretation with only 12 features
+
 ✅ **Cost-Effective:** Minimal resource requirements
+
 ✅ **High Sensitivity:** Good recall (75-81%) - identifies most at-risk patients
+
 ✅ **Accessibility:** Can be implemented in resource-limited settings
+
 ✅ **Still Effective:** AUC ~0.84 is considered "Good" discrimination
 
 ### 2.6 Limitations
 
 ⚠️ **Lower Precision:** 27% precision means many false alarms
+
 ⚠️ **No Organ-Specific Insight:** Cannot identify which systems are failing
+
 ⚠️ **Static Assessment:** Doesn't capture current physiological state
+
 ⚠️ **Limited Clinical Utility:** Less actionable for specific interventions
+
 ⚠️ **Lower Accuracy:** 77% vs 91% in SOFA models
 
 ---
@@ -273,13 +292,13 @@ Parameters:
 
 | Metric | Basic Models (Best: RF) | SOFA Models (Best: RF) | Improvement | Winner |
 |--------|------------------------|----------------------|-------------|---------|
-| **AUC-ROC** | 0.8423 | 0.9004 | **+6.9%** | ⭐ SOFA |
-| **Accuracy** | 77.47% | 91.39% | **+18.0%** | ⭐ SOFA |
-| **Precision** | 26.94% | 53.23% | **+97.6%** | ⭐ SOFA |
+| **AUC-ROC** | 0.8423 | 0.9004 | **+6.9%** | SOFA |
+| **Accuracy** | 77.47% | 91.39% | **+18.0%** | SOFA |
+| **Precision** | 26.94% | 53.23% | **+97.6%** | SOFA |
 | **Recall (Sensitivity)** | 75.15% | 64.08% | -14.7% | Basic |
-| **Specificity** | 77.8% | 94.2% | **+21.1%** | ⭐ SOFA |
-| **F1-Score** | 0.3966 | 0.5815 | **+46.6%** | ⭐ SOFA |
-| **NPV** | High (~95%) | Very High (~96%) | +1% | ⭐ SOFA |
+| **Specificity** | 77.8% | 94.2% | **+21.1%** | SOFA |
+| **F1-Score** | 0.3966 | 0.5815 | **+46.6%** | SOFA |
+| **NPV** | High (~95%) | Very High (~96%) | +1% | SOFA |
 
 ### 3.2 Feature Comparison
 
@@ -349,18 +368,28 @@ Parameters:
 
 #### When to Use Basic Models:
 ✅ **Emergency Department** - Need immediate risk stratification
+
 ✅ **Resource-Limited Settings** - Cannot obtain lab work quickly
+
 ✅ **Mass Casualty Events** - Rapid triage of many patients
+
 ✅ **Admission Screening** - Initial risk assessment
+
 ✅ **Telemedicine** - Remote assessment without lab access
+
 ✅ **Cost Constraints** - Minimize testing expenses
 
 #### When to Use SOFA Models:
 ✅ **ICU Management** - Comprehensive risk assessment for admitted patients
+
 ✅ **Intervention Planning** - Need organ-specific insights
+
 ✅ **High-Stakes Decisions** - When accuracy is paramount
+
 ✅ **Research Settings** - Most accurate mortality prediction
+
 ✅ **Quality Metrics** - Benchmarking ICU performance
+
 ✅ **Clinical Trials** - Patient stratification and outcome prediction
 
 ---
