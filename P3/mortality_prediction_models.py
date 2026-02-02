@@ -1,10 +1,11 @@
 """
 ICU Mortality Prediction Model
 ================================
-Complete pipeline implementing three models:
+Complete pipeline implementing four models:
 1. XGBoost (best performance)
 2. Random Forest (good balance)
 3. Logistic Regression (most interpretable)
+4. LightGBM (fast & efficient)
 
 Author: Generated for EHR Analysis
 Date: January 2026
@@ -29,6 +30,7 @@ from sklearn.metrics import (
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
+import lightgbm as lgb
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -284,6 +286,50 @@ def train_logistic_regression(X_train_scaled, y_train):
     return lr_model
 
 
+def train_lightgbm(X_train, y_train, X_test, y_test):
+    """Train LightGBM model"""
+    print("\n" + "=" * 70)
+    print("MODEL 4: LightGBM (FAST & EFFICIENT)")
+    print("=" * 70)
+    
+    # Calculate scale_pos_weight for class imbalance
+    scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()
+    print(f"\nClass imbalance ratio: {scale_pos_weight:.2f}")
+    
+    # LightGBM parameters
+    params = {
+        'objective': 'binary',
+        'metric': 'auc',
+        'boosting_type': 'gbdt',
+        'num_leaves': 31,
+        'learning_rate': 0.05,
+        'feature_fraction': 0.8,
+        'bagging_fraction': 0.8,
+        'bagging_freq': 5,
+        'scale_pos_weight': scale_pos_weight,
+        'random_state': RANDOM_STATE,
+        'n_estimators': 200,
+        'verbose': -1
+    }
+    
+    print(f"\nTraining LightGBM with parameters:")
+    for key, val in params.items():
+        print(f"  - {key}: {val}")
+    
+    # Train model
+    lgb_model = lgb.LGBMClassifier(**params)
+    lgb_model.fit(
+        X_train, y_train,
+        eval_set=[(X_train, y_train), (X_test, y_test)],
+        eval_metric='auc'
+    )
+    
+    print(f"\nTraining complete!")
+    print(f"Best score: {lgb_model.best_score_}")
+    
+    return lgb_model
+
+
 # =====================================================================
 # 3. MODEL EVALUATION
 # =====================================================================
@@ -397,7 +443,7 @@ def plot_roc_curves(results, y_test):
     
     plt.figure(figsize=(10, 8))
     
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
     
     for i, result in enumerate(results):
         fpr, tpr, _ = roc_curve(y_test, result['y_pred_proba'])
@@ -540,6 +586,7 @@ def main():
     xgb_model = train_xgboost(X_train, y_train, X_test, y_test)
     rf_model = train_random_forest(X_train, y_train)
     lr_model = train_logistic_regression(X_train_scaled, y_train)
+    lgb_model = train_lightgbm(X_train, y_train, X_test, y_test)
     
     # 4. Evaluate models
     results = []
@@ -553,17 +600,21 @@ def main():
     lr_results = evaluate_model(lr_model, X_test, y_test, "Logistic Regression", X_test_scaled)
     results.append(lr_results)
     
+    lgb_results = evaluate_model(lgb_model, X_test, y_test, "LightGBM")
+    results.append(lgb_results)
+    
     # 5. Feature importance
     plot_feature_importance(xgb_model, feature_names, "XGBoost", top_n=20)
     plot_feature_importance(rf_model, feature_names, "Random Forest", top_n=20)
     plot_feature_importance(lr_model, feature_names, "Logistic Regression", top_n=20)
+    plot_feature_importance(lgb_model, feature_names, "LightGBM", top_n=20)
     
     # 6. Visualizations
     plot_roc_curves(results, y_test)
     comparison_df = plot_model_comparison(results)
     
     # 7. Save models for API
-    save_models_for_api(xgb_model, rf_model, lr_model, feature_names, label_encoders, scaler)
+    save_models_for_api(xgb_model, rf_model, lr_model, lgb_model, feature_names, label_encoders, scaler)
     
     # 8. Final summary
     print("\n" + "="*70)
@@ -584,10 +635,10 @@ def main():
     print("\n🚀 API models saved and ready for deployment!")
     print("   Run: cd api && uvicorn mlapi:app --reload --port 8000")
     
-    return xgb_model, rf_model, lr_model, results, comparison_df
+    return xgb_model, rf_model, lr_model, lgb_model, results, comparison_df
 
 
-def save_models_for_api(xgb_model, rf_model, lr_model, feature_names, label_encoders, scaler):
+def save_models_for_api(xgb_model, rf_model, lr_model, lgb_model, feature_names, label_encoders, scaler):
     """Save trained models with all components for API deployment"""
     import joblib
     from pathlib import Path
@@ -618,6 +669,13 @@ def save_models_for_api(xgb_model, rf_model, lr_model, feature_names, label_enco
             , "feature_names": feature_names
             , "label_encoders": label_encoders
             , "scaler": scaler
+        },
+        
+        "lightgbm.pkl": {
+            "model": lgb_model
+            , "feature_names": feature_names
+            , "label_encoders": label_encoders
+            , "scaler": None
         }
     }
     
@@ -629,4 +687,4 @@ def save_models_for_api(xgb_model, rf_model, lr_model, feature_names, label_enco
 
 
 if __name__ == "__main__":
-    xgb_model, rf_model, lr_model, results, comparison_df = main()
+    xgb_model, rf_model, lr_model, lgb_model, results, comparison_df = main()

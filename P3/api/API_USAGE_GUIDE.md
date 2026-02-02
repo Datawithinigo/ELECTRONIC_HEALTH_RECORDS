@@ -28,9 +28,9 @@ Access the interactive documentation at: `http://localhost:8000/docs`
 
 **Features:** 12 (demographics + comorbidities only)
 
-### SOFA Models (AUC: 0.90) ⭐ **RECOMMENDED**
+### SOFA Models (AUC: 0.90)  **RECOMMENDED**
 - `xgboost_sofa`
-- `random_forest_sofa` ⭐ **BEST PERFORMER**
+- `random_forest_sofa`  **BEST PERFORMER**
 - `logistic_regression_sofa`
 - `lightgbm_sofa`
 
@@ -103,7 +103,7 @@ POST /predict/basic/{model_name}
 
 ---
 
-### 3. Predict with SOFA Model ⭐
+### 3. Predict with SOFA Model 
 ```http
 POST /predict/sofa/{model_name}
 ```
@@ -274,7 +274,7 @@ print(f"Organ Failures: {result['organ_failures']}")
 | Model | Type | AUC | Accuracy | Precision | Recall | Recommendation |
 |-------|------|-----|----------|-----------|---------|----------------|
 | Random Forest | Basic | 0.84 | 77.5% | 26.9% | 75.2% | Good for screening |
-| **Random Forest SOFA** | **SOFA** | **0.90** | **91.4%** | **53.2%** | **64.1%** | **Best overall** ⭐ |
+| **Random Forest SOFA** | **SOFA** | **0.90** | **91.4%** | **53.2%** | **64.1%** | **Best overall**  |
 | XGBoost | Basic | 0.84 | 73.1% | 24.2% | 81.0% | High sensitivity |
 | XGBoost SOFA | SOFA | 0.90 | 87.6% | 40.9% | 73.8% | Good balance |
 | LightGBM SOFA | SOFA | 0.88 | 91.1% | 53.0% | 42.7% | High precision |

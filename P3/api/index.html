@@ -348,13 +348,13 @@
             const data = await res.json();
             
             const sel = document.getElementById("model_name");
-            let options = '<optgroup label="⭐ SOFA Models (Best Performance - AUC 0.90)">';
+            let options = '<optgroup label=" SOFA Models (Best Performance - AUC 0.90)">';
             
             // Add SOFA models
             if (data.sofa_models && data.sofa_models.models) {
                 data.sofa_models.models.forEach(m => {
                     const displayName = m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                    const isRecommended = m === data.recommended ? ' ⭐ RECOMMENDED' : '';
+                    const isRecommended = m === data.recommended ? ' - *RECOMMENDED*' : '';
                     options += `<option value="${m}">${displayName}${isRecommended}</option>`;
                 });
             }
@@ -404,10 +404,10 @@
                 'lightgbm': '🔹 Basic Model | AUC: 0.840 | Accuracy: 77% | Features: 12',
                 
                 // SOFA models
-                'xgboost_sofa': '⭐ SOFA Model | AUC: 0.898 | Accuracy: 87.6% | Features: 30-35 | Includes organ function assessment',
-                'random_forest_sofa': '⭐ SOFA Model | AUC: 0.900 | Accuracy: 91.4% | Features: 30-35 | BEST PERFORMANCE 🏆',
-                'logistic_regression_sofa': '⭐ SOFA Model | AUC: 0.878 | Accuracy: 78.9% | Features: 30-35 | Most interpretable',
-                'lightgbm_sofa': '⭐ SOFA Model | AUC: 0.881 | Accuracy: 91.1% | Features: 30-35 | High precision'
+                'xgboost_sofa': ' SOFA Model | AUC: 0.898 | Accuracy: 87.6% | Features: 30-35 | Includes organ function assessment',
+                'random_forest_sofa': ' SOFA Model | AUC: 0.900 | Accuracy: 91.4% | Features: 30-35 | BEST PERFORMANCE 🏆',
+                'logistic_regression_sofa': ' SOFA Model | AUC: 0.878 | Accuracy: 78.9% | Features: 30-35 | Most interpretable',
+                'lightgbm_sofa': ' SOFA Model | AUC: 0.881 | Accuracy: 91.1% | Features: 30-35 | High precision'
             };
             
             if (modelInfo[modelName]) {
@@ -527,7 +527,7 @@
                     </div>
                     <div style="font-size: 1.1rem; margin-bottom: 15px;">
                         Risk Level: <strong>${result.risk_level.toUpperCase()}</strong>
-                        ${isSofa ? '<br><small style="font-size: 0.85rem;">⭐ Enhanced SOFA Model Prediction</small>' : ''}
+                        ${isSofa ? '<br><small style="font-size: 0.85rem;"> Enhanced SOFA Model Prediction</small>' : ''}
                     </div>
                     <div class="probability-bar">
                         <div class="probability-fill" style="width: ${result.mortality_probability}%;">
@@ -536,7 +536,7 @@
                     </div>
                     <div class="output-details">
                         <strong>Model:</strong> ${result.model.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}<br>
-                        <strong>Model Type:</strong> ${result.model_type === 'sofa' ? '⭐ SOFA Enhanced' : '🔹 Basic'}<br>
+                        <strong>Model Type:</strong> ${result.model_type === 'sofa' ? ' SOFA Enhanced' : '🔹 Basic'}<br>
                         <strong>Mortality Probability:</strong> ${result.mortality_probability}%<br>
                         <strong>Survival Probability:</strong> ${(100 - result.mortality_probability).toFixed(2)}%
                         ${sofaInfo}
@@ -719,7 +719,7 @@
         <!-- SOFA Scores Section (only visible for SOFA models) -->
         <div id="sofa_section" style="display: none;">
             <div class="section-header" style="color: #10b981; border-bottom-color: #10b981;">
-                ⭐ SOFA Scores (Enhanced Prediction)
+                 SOFA Scores (Enhanced Prediction)
             </div>
             <div style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #10b981;">
                 <p style="margin: 0; color: #333; font-size: 0.9rem;">

@@ -75,7 +75,7 @@ bmi_age_interaction = bmi × age
 
 ### 2. 🤖 Optimized Model Algorithms
 
-#### **XGBoost** (⭐ BEST PERFORMANCE)
+#### **XGBoost** ( BEST PERFORMANCE)
 ```python
 Parameters:
 - n_estimators: 500 (increased from 200)

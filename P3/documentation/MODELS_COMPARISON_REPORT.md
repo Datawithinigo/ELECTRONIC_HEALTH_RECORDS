@@ -416,7 +416,7 @@ IF (Time_Critical AND Labs_Not_Available):
     EXPECT: AUC=0.84, Many_False_Alarms, Good_Sensitivity
     
 ELSE IF (Labs_Available AND Need_Accuracy):
-    USE SOFA_Model_Random_Forest  ⭐ RECOMMENDED
+    USE SOFA_Model_Random_Forest  - *RECOMMENDED*
     EXPECT: AUC=0.90, Better_Precision, Organ_Insights
     
 ELSE IF (Need_High_Sensitivity):
