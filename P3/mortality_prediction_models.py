@@ -49,7 +49,39 @@ def load_and_preprocess_data(filepath):
     print("=" * 70)
     
     df = pd.read_csv(filepath)
-    print(f"\nDataset shape: {df.shape}")
+    print(f"\nOriginal dataset shape: {df.shape}")
+    
+    # Column mapping: df_icu.csv -> df_a3_andrea_v2.csv naming
+    # Maps from source column names to target column names to maintain compatibility
+    column_mapping = {
+        # IDs and timestamps
+        'subject_id': 'SUBJECT_ID'
+        , 'hadm_id': 'HADM_ID'
+        ,'intime': 'ICU_ADMIT'
+        , 'outtime': 'ICU_DISCH'
+        , 'icu_los_hours': 'ICU_LOS_HOURS'
+        ,'hosp_admit': 'HOSP_ADMIT'
+        , 'hosp_disch': 'HOSP_DISCH'
+        , 'hosp_los_hours': 'HOSP_LOS_HOURS'
+        # Demographics
+        , 'gender': 'GENDER'
+        , 'dob': 'DOB'
+        , 'ethnicity_group': 'ETHNICITY_GROUP'
+        # Comorbidities (flag_ prefix to _comorbidity suffix)
+        , 'flag_diabetes': 'diabetes_comorbidity'
+        , 'flag_hypertension': 'hypertension_comorbidity'
+        , 'flag_ckd': 'ckd_comorbidity'
+        , 'flag_chf': 'chf_comorbidity'
+        , 'flag_copd': 'copd_comorbidity'
+        , 'flag_cancer': 'cancer_comorbidity'
+    }
+    
+    # Rename columns and keep all mapped columns plus standard ones
+    df = df.rename(columns=column_mapping)
+    expected_columns = set(column_mapping.values()) | {'AGE', 'MORTALITY', 'diagnosis_group', 'ICD9_CODE', 'LONG_TITLE', 'resp_procedure'}
+    df = df[[col for col in df.columns if col in expected_columns]]
+    
+    print(f"Filtered dataset shape: {df.shape}")
     print(f"\nColumns: {list(df.columns)}")
     
     # Display mortality distribution
@@ -69,29 +101,43 @@ def feature_engineering(df):
     
     df_model = df.copy()
     
+    # Standardize column names to lowercase for easier access
+    df_model.columns = df_model.columns.str.lower()
+    
     # Remove temporal variables that cause data leakage
     # (ICU_LOS_HOURS and HOSP_LOS_HOURS are known only after discharge)
-    leakage_cols = ['ICU_DISCH', 'HOSP_DISCH', 'ICU_LOS_HOURS', 'HOSP_LOS_HOURS']
+    leakage_cols = ['icu_disch', 'hosp_disch', 'icu_los_hours', 'hosp_los_hours']
     df_model = df_model.drop(columns=[col for col in leakage_cols if col in df_model.columns])
     
     # Remove ID columns and dates
-    id_cols = ['SUBJECT_ID', 'HADM_ID', 'ICU_ADMIT', 'HOSP_ADMIT', 'DOB']
+    id_cols = ['subject_id', 'hadm_id', 'icu_admit', 'hosp_admit', 'dob']
     df_model = df_model.drop(columns=[col for col in id_cols if col in df_model.columns])
     
     # Remove ICD9_CODE and LONG_TITLE (already captured in diagnosis_group)
-    if 'ICD9_CODE' in df_model.columns:
-        df_model = df_model.drop(columns=['ICD9_CODE'])
-    if 'LONG_TITLE' in df_model.columns:
-        df_model = df_model.drop(columns=['LONG_TITLE'])
+    if 'icd9_code' in df_model.columns:
+        df_model = df_model.drop(columns=['icd9_code'])
+    if 'long_title' in df_model.columns:
+        df_model = df_model.drop(columns=['long_title'])
+    
+    # Rename comorbidity columns to match sofa naming convention
+    comorbidity_rename = {
+        'diabetes_comorbidity': 'flag_diabetes',
+        'hypertension_comorbidity': 'flag_hypertension',
+        'ckd_comorbidity': 'flag_ckd',
+        'chf_comorbidity': 'flag_chf',
+        'copd_comorbidity': 'flag_copd',
+        'cancer_comorbidity': 'flag_cancer'
+    }
+    df_model = df_model.rename(columns=comorbidity_rename)
     
     # Create comorbidity count
     comorbidity_cols = [
-        'diabetes_comorbidity'
-        , 'hypertension_comorbidity'
-        , 'ckd_comorbidity'
-        , 'chf_comorbidity' 
-        , 'copd_comorbidity'
-        , 'cancer_comorbidity'
+        'flag_diabetes'
+        , 'flag_hypertension'
+        , 'flag_ckd'
+        , 'flag_chf'
+        , 'flag_copd'
+        , 'flag_cancer'
     ]
     
     available_comorbidities = [col for col in comorbidity_cols if col in df_model.columns]
@@ -106,7 +152,7 @@ def feature_engineering(df):
     
     # Impute numeric columns with median
     numeric_cols = df_model.select_dtypes(include=[np.number]).columns
-    numeric_cols = [col for col in numeric_cols if col != 'MORTALITY']
+    numeric_cols = [col for col in numeric_cols if col != 'mortality']
     
     for col in numeric_cols:
         if df_model[col].isnull().any():
@@ -123,7 +169,7 @@ def feature_engineering(df):
             print(f"  - {col}: filled with mode ({mode_val})")
     
     print(f"\nFinal dataset shape: {df_model.shape}")
-    print(f"Features: {[col for col in df_model.columns if col != 'MORTALITY']}")
+    print(f"Features: {[col for col in df_model.columns if col != 'mortality']}")
     
     return df_model
 
@@ -135,8 +181,9 @@ def prepare_train_test_split(df_model):
     print("=" * 70)
     
     # Separate features and target
-    X = df_model.drop('MORTALITY', axis=1)
-    y = df_model['MORTALITY']
+    target_col = 'mortality' if 'mortality' in df_model.columns else 'MORTALITY'
+    X = df_model.drop(target_col, axis=1)
+    y = df_model[target_col]
     
     # Encode categorical variables
     categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
@@ -557,8 +604,8 @@ def main():
     print("ICU MORTALITY PREDICTION - COMPLETE PIPELINE")
     print("="*70)
     
-    # File path
-    filepath = "P3/resources_p3/df_a3_andrea_v2.csv"
+    # File path - Using df_icu.csv but filtering to original columns only
+    filepath = "P3/resources_p3/df_icu.csv"
     
     # 1. Load and preprocess data
     df = load_and_preprocess_data(filepath)
@@ -570,7 +617,8 @@ def main():
     
     # Get label encoders and scaler for API
     from sklearn.preprocessing import LabelEncoder, StandardScaler
-    X = df_model.drop('MORTALITY', axis=1)
+    target_col = 'mortality' if 'mortality' in df_model.columns else 'MORTALITY'
+    X = df_model.drop(target_col, axis=1)
     categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
     
     label_encoders = {}
