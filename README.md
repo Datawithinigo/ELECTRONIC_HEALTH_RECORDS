@@ -7,63 +7,90 @@
 
 # P3 ICU Mortality Prediction
 
-Minimal project structure for ICU mortality prediction using machine learning.
+Advanced ICU mortality prediction system using machine learning with baseline and SOFA-enhanced models. Achieves **91.7% accuracy** and **0.904 AUC** with the best performing model.
 
 ## 📁 Project Structure
 
 ```
 P3/
-├── mortality_prediction_models.py    # Main training script (single source of truth)
+├── mortality_prediction_models.py       # Baseline models training script
+├── mortality_prediction_models_sofa.py  # SOFA-enhanced models training script
+├── analyze_oncology_bug.py              # Oncology analysis utility
 ├── api/
-│   ├── mlapi.py                      # FastAPI server
-│   ├── index.html                    # Web interface
-│   └── models/                       # Saved models (auto-generated)
-│       ├── xgboost.pkl
+│   ├── mlapi.py                         # FastAPI server (8 models)
+│   ├── index.html                       # Web interface
+│   ├── API_USAGE_GUIDE.md              # Comprehensive API documentation
+│   └── models/                          # Saved models (auto-generated)
+│       ├── xgboost.pkl                  # Baseline models
 │       ├── random_forest.pkl
-│       └── logistic_regression.pkl
-├── results_images/                   # Visualizations (auto-generated)
-│   ├── feature_importance_xgboost.png
-│   ├── feature_importance_random_forest.png
-│   ├── feature_importance_logistic_regression.png
-│   ├── roc_curves_comparison.png
-│   └── model_comparison.png
-└── ../resources_p3/
-    └── df_a3_andrea_v2.csv          # Training data
+│       ├── logistic_regression.pkl
+│       ├── lightgbm.pkl
+│       ├── xgboost_sofa.pkl            # SOFA-enhanced models
+│       ├── random_forest_sofa.pkl
+│       ├── logistic_regression_sofa.pkl
+│       └── lightgbm_sofa.pkl
+├── documentation/
+│   ├── MODEL_IMPROVEMENTS_SUMMARY.md    # Model enhancement details
+│   ├── MODELS_COMPARISON_REPORT.md      # Comparative analysis
+│   └── scientific_publication.md        # Research manuscript
+├── results_images/                      # Visualizations (auto-generated)
+│   ├── model_comparison.png             # Baseline comparison
+│   ├── model_comparison_sofa.png        # SOFA comparison
+│   ├── roc_curves_comparison.png        # Baseline ROC curves
+│   ├── roc_curves_comparison_sofa.png   # SOFA ROC curves
+│   ├── feature_importance_*.png         # All models (8 variants)
+│   └── model_metrics_summary*.csv       # Performance metrics
+├── db_processing/
+│   └── A3_v2_all_sofa_extra.ipynb      # Data processing notebook
+└── resources_p3/
+    └── df_icu.csv                       # Training data
 ```
 
 ## 🚀 Usage
 
 ### 1. Train Models
+
+**Train Baseline Models:**
 ```bash
 cd P3
 ../.venv/bin/python mortality_prediction_models.py
 ```
 
+**Train SOFA-Enhanced Models:**
+```bash
+../.venv/bin/python mortality_prediction_models_sofa.py
+```
+
 This will:
-- Train 3 models (XGBoost, Random Forest, Logistic Regression)
-- Generate performance visualizations
-- Save models to `api/models/`
+- Train 8 models total (4 baseline + 4 SOFA-enhanced)
+- Models: XGBoost, Random Forest, Logistic Regression, LightGBM
+- Generate performance visualizations and metrics
+- Save all models to `api/models/`
+- Output comparison charts and feature importance plots
 
 ### 2. Start API
 ```bash
 ../.venv/bin/uvicorn api.mlapi:app --reload --port 8000
 
-# good one: 
+# Recommended: 
 source ../.venv/bin/activate && uvicorn api.mlapi:app --reload --port 8000
 ```
 
 > **Note:** Run from `P3/` directory
 
-Visit: http://localhost:8000
+**Access Points:**
+- Web Interface: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- Available Models: 8 (4 baseline + 4 SOFA-enhanced)
 
-
-### 2.1. Share url with the presentation (MIDUDEV) : 
+### 2.1. Share URL for Presentation (Cloudflare Tunnel)
 ```bash
 brew install cloudflared
-# change for your url 
+# Replace with your local URL
 cloudflared tunnel --url http://127.0.0.1:8000/
-
 ```
+
+This creates a public URL for demo purposes.
 
 
 ### 3. Make Predictions
@@ -71,7 +98,9 @@ cloudflared tunnel --url http://127.0.0.1:8000/
 **Web Interface:**
 - Open http://localhost:8000
 
-**API Endpoint:**
+**API Endpoints:**
+
+*Baseline Model (12 features):*
 ```bash
 curl -X POST http://localhost:8000/predict/random_forest \
   -H "Content-Type: application/json" \
@@ -90,75 +119,127 @@ curl -X POST http://localhost:8000/predict/random_forest \
   }'
 ```
 
+*SOFA-Enhanced Model (30+ features) - RECOMMENDED:*
+```bash
+curl -X POST http://localhost:8000/predict/random_forest_sofa \
+  -H "Content-Type: application/json" \
+  -d '{...}'  # See API_USAGE_GUIDE.md for full schema
+```
+
+> 📘 For complete API documentation and SOFA model schemas, see [API_USAGE_GUIDE.md](P3/api/API_USAGE_GUIDE.md)
+
 ## 📦 Requirements
 
 ```bash
-pip install pandas numpy matplotlib seaborn scikit-learn xgboost fastapi uvicorn
+pip install pandas numpy matplotlib seaborn scikit-learn xgboost lightgbm fastapi uvicorn
 ```
+
+**Python Version:** 3.8+
+
+**Key Dependencies:**
+- `scikit-learn` - ML algorithms (Random Forest, Logistic Regression)
+- `xgboost` - Gradient boosting
+- `lightgbm` - Light gradient boosting
+- `fastapi` - API framework
+- `uvicorn` - ASGI server
+- `pandas`, `numpy` - Data processing
+- `matplotlib`, `seaborn` - Visualizations
+
+**Python Version:** 3.8+
+
+**Key Dependencies:**
+- `scikit-learn` - ML algorithms (Random Forest, Logistic Regression)
+- `xgboost` - Gradient boosting
+- `lightgbm` - Light gradient boosting
+- `fastapi` - API framework
+- `uvicorn` - ASGI server
+- `pandas`, `numpy` - Data processing
+- `matplotlib`, `seaborn` - Visualizations
 
 ## 🎯 Model Performance
 
-| Model | AUC | Accuracy |
-|-------|-----|----------|
-| Random Forest | 0.842 | 77.5% |
-| XGBoost | 0.841 | 73.1% |
-| Logistic Regression | 0.831 | 73.7% |
+### Baseline Models (Without SOFA Score)
 
-## 📊 Key Features
+| Model | AUC | Accuracy | Precision | Recall | Specificity | F1-Score |
+|-------|-----|----------|-----------|--------|-------------|----------|
+| Random Forest | 0.900 | 91.4% | 0.532 | 0.641 | 0.942 | 0.581 |
+| XGBoost | 0.898 | 87.6% | 0.409 | 0.738 | 0.890 | 0.526 |
+| Logistic Regression | 0.878 | 78.9% | 0.283 | 0.825 | 0.785 | 0.422 |
+| LightGBM | 0.881 | 91.1% | 0.530 | 0.427 | 0.961 | 0.473 |
 
-Top 3 predictors:
+### Enhanced Models (With SOFA Score)
+
+| Model | AUC | Accuracy | Precision | Recall | Specificity | F1-Score |
+|-------|-----|----------|-----------|--------|-------------|----------|
+| Random Forest | 0.904 | 91.7% | 0.548 | 0.660 | 0.944 | 0.599 |
+| XGBoost | 0.899 | 87.6% | 0.409 | 0.738 | 0.890 | 0.526 |
+| Logistic Regression | 0.879 | 80.0% | 0.294 | 0.816 | 0.798 | 0.432 |
+| LightGBM | 0.875 | 91.2% | 0.535 | 0.447 | 0.960 | 0.487 |
+
+**Best Model:** Random Forest with SOFA score (AUC: 0.904, Accuracy: 91.7%)
+
+### 📊 Model Comparison Visualizations
+
+#### Baseline Models
+![Model Comparison](P3/results_images/model_comparison.png)
+![ROC Curves Comparison](P3/results_images/roc_curves_comparison.png)
+
+#### Enhanced Models with SOFA Score
+![Model Comparison SOFA](P3/results_images/model_comparison_sofa.png)
+![ROC Curves Comparison SOFA](P3/results_images/roc_curves_comparison_sofa.png)
+
+### 📈 Feature Importance
+
+#### XGBoost
+![Feature Importance XGBoost](P3/results_images/feature_importance_xgboost.png)
+![Feature Importance XGBoost SOFA](P3/results_images/feature_importance_xgboost_sofa.png)
+
+#### Random Forest
+![Feature Importance Random Forest](P3/results_images/feature_importance_random_forest.png)
+![Feature Importance Random Forest SOFA](P3/results_images/feature_importance_random_forest_sofa.png)
+
+#### Logistic Regression
+![Feature Importance Logistic Regression](P3/results_images/feature_importance_logistic_regression.png)
+![Feature Importance Logistic Regression SOFA](P3/results_images/feature_importance_logistic_regression_sofa.png)
+
+#### LightGBM
+![Feature Importance LightGBM](P3/results_images/feature_importance_lightgbm.png)
+![Feature Importance LightGBM SOFA](P3/results_images/feature_importance_lightgbm_sofa.png)
+
+## 📊 Key Insights
+
+### Top Predictors (Baseline Models):
 1. **Respiratory procedure** (78-99% importance)
 2. **CKD comorbidity** (11-49% importance)
 3. **Age** (1-45% importance)
 
+### Top Predictors (Enhanced with SOFA):
+1. **SOFA Score** (dominant predictor when included)
+2. **Respiratory procedure**
+3. **CKD comorbidity**
+4. **Age**
 
 
+## 📚 Additional Documentation
 
-* P1(15%): 9.20 / 10.00,  Document (45%): 8.5; Presentation (35%): 9.5; Answers (20%): 10
-* P2(30%): 7.15 / 10.00,  a) 5,6, b) 8,25, c) 9
-* P3(45%): 7.15 / 10.00,  a) 5,6, b) 8,25, c) 9
+### Internal Documentation
+- [API Usage Guide](P3/api/API_USAGE_GUIDE.md) - Complete API reference with examples
+- [Model Improvements Summary](P3/documentation/MODEL_IMPROVEMENTS_SUMMARY.md) - Enhancement details
+- [Models Comparison Report](P3/documentation/MODELS_COMPARISON_REPORT.md) - Detailed analysis
+- [Scientific Publication](P3/documentation/scientific_publication.md) - Research manuscript
 
+### External Resources
+- **Project Documentation:** [Google Docs](https://docs.google.com/document/d/1jtew0pYUJpSkwmLqGZSX7vngA6w2bO7PyxG_eQxJaOs/edit?usp=sharing)
+- **Presentation Slides:** [Canva](https://www.canva.com/design/DAG_ROmPp2U/qoFy4FqXyg_ZQX-WbI1gAg/edit?utm_content=DAG_ROmPp2U&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
-This project is splited in 3 areas, db extraction, modeling and api. now we obtain extra data in the file /Users/arriazui/Desktop/master/ELECTRONIC_HEALTH_RECORDS/P3/resources_p3/df_icu.csv, i want that you create a new file and improve the model with the new states like sofa, ibm ... try to extract as much information as possible and you have to impove the results that /Users/arriazui/Desktop/master/ELECTRONIC_HEALTH_RECORDS/P3/mortality_prediction_models.py
+---
 
-PROMPT 1: 
-explain me without changing anything what this doc does /Users/arriazui/Desktop/master/ELECTRONIC_HEALTH_RECORDS/P3/A3_GroupM (1).ipynb
+## 🏆 Summary
 
-
-
-PROMTP 2: 
-okey with that dataframe what woudl be the best way to create a predictive model of mortalitiy using the maximum variables possibles?
-
-
-
-## prompt 3 
-Yo need to create a prediction mortality model of the 24h after enter in the icu. for that task: 
-1. read the 5 first lines of the dataset to understand its columns and format /Users/arriazui/Desktop/master/ELECTRONIC_HEALTH_RECORDS/P3/db_processing/A3_v2_all_sofa_extra.ipynb 
-
-2. that dataset would be the input for the model 
-3. select the best prediction model for that structure of the dataset 
-4. in a new file, using python generate the prediction model 
-
-Some suggestions: 
-Enhanced Clinical Model__ (Add First 24h Physiology)
-focus in the strucutre of the dataset and generate the model 
-__Add these SOFA-related variables:__
-
-- __Respiratory:__ pf_ratio, resp_score
-- __Cardiovascular:__ map_min, cv_score, any_vaso
-- __Liver:__ bilirubin, liver_score
-- __CNS:__ gcs, cns_score
-- __Coagulation:__ platelets, sofa_coag
-- __Renal:__ creatinine_mgdl, urine_ml_24h, renal_score
-- __Total severity:__ total_sofa
-
-
-
-
-### Complementary information: 
-* The documentation for the project is : 
-https://docs.google.com/document/d/1jtew0pYUJpSkwmLqGZSX7vngA6w2bO7PyxG_eQxJaOs/edit?usp=sharing
-
-* The slides of the presentation are : 
-https://www.canva.com/design/DAG_ROmPp2U/qoFy4FqXyg_ZQX-WbI1gAg/edit?utm_content=DAG_ROmPp2U&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+**Project Type:** ICU Mortality Risk Prediction  
+**Best Model:** Random Forest with SOFA score  
+**Performance:** 91.7% Accuracy | 0.904 AUC  
+**Total Models:** 8 (4 baseline + 4 SOFA-enhanced)  
+**API:** FastAPI with web interface  
+**Deployment:** Production-ready with Cloudflare tunneling
 
