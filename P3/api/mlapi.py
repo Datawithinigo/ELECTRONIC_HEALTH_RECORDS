@@ -118,23 +118,47 @@ def predict_basic(model_name: str, patient: PatientDataBasic):
     scaler = bundle.get("scaler")
     
     patient_dict = patient.dict()
-    patient_dict["comorbidity_count"] = sum([
-        patient_dict["diabetes_comorbidity"],
-        patient_dict["hypertension_comorbidity"],
-        patient_dict["ckd_comorbidity"],
-        patient_dict["chf_comorbidity"],
-        patient_dict["copd_comorbidity"],
-        patient_dict["cancer_comorbidity"]
+    
+    # Map uppercase API field names to lowercase model feature names
+    field_mapping = {
+        'GENDER': 'gender',
+        'AGE': 'age',
+        'ETHNICITY_GROUP': 'ethnicity_group',
+        'diabetes_comorbidity': 'flag_diabetes',
+        'hypertension_comorbidity': 'flag_hypertension',
+        'ckd_comorbidity': 'flag_ckd',
+        'chf_comorbidity': 'flag_chf',
+        'copd_comorbidity': 'flag_copd',
+        'cancer_comorbidity': 'flag_cancer',
+        'diagnosis_group': 'diagnosis_group',
+        'resp_procedure': 'resp_procedure'
+    }
+    
+    # Create normalized dict with lowercase keys
+    normalized_dict = {}
+    for api_key, model_key in field_mapping.items():
+        if api_key in patient_dict:
+            normalized_dict[model_key] = patient_dict[api_key]
+    
+    # Add comorbidity count
+    normalized_dict["comorbidity_count"] = sum([
+        normalized_dict.get("flag_diabetes", 0),
+        normalized_dict.get("flag_hypertension", 0),
+        normalized_dict.get("flag_ckd", 0),
+        normalized_dict.get("flag_chf", 0),
+        normalized_dict.get("flag_copd", 0),
+        normalized_dict.get("flag_cancer", 0)
     ])
     
+    # Encode categorical variables
     for col, encoder in label_encoders.items():
-        if col in patient_dict:
+        if col in normalized_dict:
             try:
-                patient_dict[col] = encoder.transform([str(patient_dict[col])])[0]
+                normalized_dict[col] = encoder.transform([str(normalized_dict[col])])[0]
             except ValueError:
-                patient_dict[col] = 0
+                normalized_dict[col] = 0
     
-    X = np.array([[patient_dict[f] for f in feature_names]])
+    X = np.array([[normalized_dict.get(f, 0) for f in feature_names]])
     if scaler is not None:
         X = scaler.transform(X)
     
@@ -166,6 +190,96 @@ def predict_sofa(model_name: str, patient: PatientDataSOFA):
     
     patient_dict = patient.dict()
     
+    # Get SOFA score to set appropriate clinical measurement defaults
+    total_sofa = patient_dict.get("total_sofa", 5)
+    
+    # Set clinical defaults based on SOFA severity level
+    # Values derived from typical ranges: Low SOFA = better values, High SOFA = worse values
+    if total_sofa <= 3:  # Low SOFA - relatively healthy
+        clinical_defaults = {
+            'ethnicity': patient_dict.get('ethnicity_group', 'WHITE'),
+            'height_m': 1.70,
+            'weight_baseline_kg': 79.42,
+            'pf_ratio': 350.00,  # Good oxygenation
+            'map_min': 70.00,    # Good blood pressure
+            'bilirubin': 12.00,  # Normal liver function
+            'gcs': 15.00,        # Fully alert
+            'platelets': 250.00, # Normal coagulation
+            'creatinine_mgdl': 80.00,  # Good kidney function
+            'urine_ml_24h': 3500.00,   # Good urine output
+            'max_dobutamine_rate': 0.00,
+            'max_norepi_rate': 0.00,
+            'any_vaso': 0
+        }
+    elif total_sofa <= 6:  # Moderate-low SOFA
+        clinical_defaults = {
+            'ethnicity': patient_dict.get('ethnicity_group', 'WHITE'),
+            'height_m': 1.70,
+            'weight_baseline_kg': 79.42,
+            'pf_ratio': 280.00,
+            'map_min': 60.00,
+            'bilirubin': 18.00,
+            'gcs': 14.00,
+            'platelets': 200.00,
+            'creatinine_mgdl': 100.00,
+            'urine_ml_24h': 3000.00,
+            'max_dobutamine_rate': 0.00,
+            'max_norepi_rate': 0.00,
+            'any_vaso': 0
+        }
+    elif total_sofa <= 10:  # Moderate SOFA
+        clinical_defaults = {
+            'ethnicity': patient_dict.get('ethnicity_group', 'WHITE'),
+            'height_m': 1.70,
+            'weight_baseline_kg': 79.42,
+            'pf_ratio': 220.00,
+            'map_min': 50.00,
+            'bilirubin': 25.00,
+            'gcs': 12.00,
+            'platelets': 170.00,
+            'creatinine_mgdl': 127.00,
+            'urine_ml_24h': 2500.00,
+            'max_dobutamine_rate': 0.00,
+            'max_norepi_rate': 0.05,
+            'any_vaso': 0
+        }
+    elif total_sofa <= 15:  # High SOFA
+        clinical_defaults = {
+            'ethnicity': patient_dict.get('ethnicity_group', 'WHITE'),
+            'height_m': 1.70,
+            'weight_baseline_kg': 79.42,
+            'pf_ratio': 150.00,  # Poor oxygenation
+            'map_min': 40.00,    # Low blood pressure
+            'bilirubin': 40.00,  # Impaired liver function
+            'gcs': 9.00,         # Reduced consciousness
+            'platelets': 120.00, # Low platelets
+            'creatinine_mgdl': 180.00,  # Impaired kidney function
+            'urine_ml_24h': 1500.00,    # Reduced urine output
+            'max_dobutamine_rate': 5.00,
+            'max_norepi_rate': 0.15,
+            'any_vaso': 1
+        }
+    else:  # Critical SOFA (>15)
+        clinical_defaults = {
+            'ethnicity': patient_dict.get('ethnicity_group', 'WHITE'),
+            'height_m': 1.70,
+            'weight_baseline_kg': 79.42,
+            'pf_ratio': 80.00,   # Very poor oxygenation
+            'map_min': 35.00,    # Very low blood pressure
+            'bilirubin': 60.00,  # Severe liver dysfunction
+            'gcs': 6.00,         # Severely reduced consciousness
+            'platelets': 60.00,  # Very low platelets
+            'creatinine_mgdl': 250.00,  # Severe kidney dysfunction
+            'urine_ml_24h': 500.00,     # Very low urine output
+            'max_dobutamine_rate': 10.00,
+            'max_norepi_rate': 0.30,
+            'any_vaso': 1
+        }
+    
+    for key, default_value in clinical_defaults.items():
+        if key not in patient_dict or patient_dict.get(key) is None:
+            patient_dict[key] = default_value
+    
     # Create engineered features
     # 1. Comorbidity count
     patient_dict["comorbidity_count"] = sum([
@@ -181,38 +295,41 @@ def predict_sofa(model_name: str, patient: PatientDataSOFA):
     if patient_dict.get("bmi_baseline"):
         bmi = patient_dict["bmi_baseline"]
         if bmi < 18.5:
-            patient_dict["bmi_category"] = 0  # underweight
+            patient_dict["bmi_category"] = "underweight"
         elif bmi < 25:
-            patient_dict["bmi_category"] = 1  # normal
+            patient_dict["bmi_category"] = "normal"
         elif bmi < 30:
-            patient_dict["bmi_category"] = 2  # overweight
+            patient_dict["bmi_category"] = "overweight"
         else:
-            patient_dict["bmi_category"] = 3  # obese
+            patient_dict["bmi_category"] = "obese"
     else:
         patient_dict["bmi_baseline"] = 25.0  # median
-        patient_dict["bmi_category"] = 1
+        patient_dict["bmi_category"] = "normal"
     
     # 3. Age group
     age = patient_dict["age"]
     if age < 40:
-        patient_dict["age_group"] = 0  # young
+        patient_dict["age_group"] = "young"
     elif age < 60:
-        patient_dict["age_group"] = 1  # middle
+        patient_dict["age_group"] = "middle"
     elif age < 75:
-        patient_dict["age_group"] = 2  # elderly
+        patient_dict["age_group"] = "elderly"
     else:
-        patient_dict["age_group"] = 3  # very_elderly
+        patient_dict["age_group"] = "very_elderly"
     
     # 4. SOFA severity
     total_sofa = patient_dict["total_sofa"]
     if total_sofa <= 6:
-        patient_dict["sofa_severity"] = 0  # low
+        patient_dict["sofa_severity"] = "low"
     elif total_sofa <= 10:
-        patient_dict["sofa_severity"] = 1  # moderate
+        patient_dict["sofa_severity"] = "moderate"
     elif total_sofa <= 15:
-        patient_dict["sofa_severity"] = 2  # high
+        patient_dict["sofa_severity"] = "high"
     else:
-        patient_dict["sofa_severity"] = 3  # critical
+        patient_dict["sofa_severity"] = "critical"
+    
+    # Store severity label for response before encoding
+    sofa_severity_label = patient_dict["sofa_severity"]
     
     # 5. Organ failures (SOFA subscores > 2)
     patient_dict["organ_failures"] = sum([
@@ -239,12 +356,16 @@ def predict_sofa(model_name: str, patient: PatientDataSOFA):
             try:
                 patient_dict[col] = encoder.transform([str(patient_dict[col])])[0]
             except ValueError:
+                # Use first class as default if value not found
                 patient_dict[col] = 0
     
     # Prepare features in correct order
     X = np.array([[patient_dict.get(f, 0) for f in feature_names]])
     if scaler is not None:
-        X = scaler.transform(X)
+        X_scaled = scaler.transform(X)
+        # Replace NaN values with original unscaled values (for features with NaN scale)
+        X_scaled = np.where(np.isnan(X_scaled), X, X_scaled)
+        X = X_scaled
     
     mortality_prob = float(model.predict_proba(X)[0, 1])
     mortality_pred = int(mortality_prob >= 0.5)
@@ -260,7 +381,7 @@ def predict_sofa(model_name: str, patient: PatientDataSOFA):
             "moderate" if mortality_prob >= 0.3 else 
             "low"
         ),
-        "sofa_severity": ["low", "moderate", "high", "critical"][patient_dict["sofa_severity"]],
+        "sofa_severity": sofa_severity_label,
         "organ_failures": patient_dict["organ_failures"]
     }
 
