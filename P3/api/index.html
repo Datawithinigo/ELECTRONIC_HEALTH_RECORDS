@@ -354,7 +354,7 @@
             if (data.sofa_models && data.sofa_models.models) {
                 data.sofa_models.models.forEach(m => {
                     const displayName = m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                    const isRecommended = m === data.recommended ? ' - *RECOMMENDED*' : '';
+                    const isRecommended = m === data.recommended ? ' - RECOMMENDED' : '';
                     options += `<option value="${m}">${displayName}${isRecommended}</option>`;
                 });
             }
@@ -805,7 +805,7 @@
 
         <!-- Buttons -->
         <div class="button-row">
-            <button type="submit" class="btn-predict">🔮 Predict Mortality Risk</button>
+            <button type="submit" class="btn-predict"> Predict Mortality Risk</button>
             <button type="button" class="btn-clear" onclick="clearForm()">🔄 Clear Form</button>
         </div>
 

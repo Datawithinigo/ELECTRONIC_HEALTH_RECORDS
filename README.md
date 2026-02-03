@@ -70,9 +70,6 @@ This will:
 
 ### 2. Start API
 ```bash
-../.venv/bin/uvicorn api.mlapi:app --reload --port 8000
-
-# Recommended: 
 source ../.venv/bin/activate && uvicorn api.mlapi:app --reload --port 8000
 ```
 
@@ -83,7 +80,7 @@ source ../.venv/bin/activate && uvicorn api.mlapi:app --reload --port 8000
 - API Documentation: http://localhost:8000/docs
 - Available Models: 8 (4 baseline + 4 SOFA-enhanced)
 
-### 2.1. Share URL for Presentation (Cloudflare Tunnel)
+### 2.1. Share URL for Presentation (Cloudflare Tunnel - @MIDUDEV)
 ```bash
 brew install cloudflared
 # Replace with your local URL
