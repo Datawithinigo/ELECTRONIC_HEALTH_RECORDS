@@ -1,11 +1,21 @@
-# P1
-
-# P2
+# P1: Large language models forecast patient health trajectories enabling digital twins 
 * P1(15%): 9.20 / 10.00,  Document (45%): 8.5; Presentation (35%): 9.5; Answers (20%): 10
-* P2(30%): 7.15 / 10.00,  a) 5,6, b) 8,25, c) 9
-* P3(45%): 7.15 / 10.00,  a) 5,6, b) 8,25, c) 9
 
-# P3 ICU Mortality Prediction
+# P2: [**MIMIC-III webpage**](https://mimic.mit.edu/docs/iii/) Analysis.
+* P2(30%): 7.15 / 10.00,  a) 5,6, b) 8,25, c) 9
+
+
+# P3: ICU Mortality Prediction
+* P3(45%): 7.15 / 10.00,  a) 5,6, b) 8,25, c) 9
+- FEEDBACK: 
+  * (IMP) Missing references: comparison + standards + state of the art --> no ref = RED FLAG
+  * (IMP) Missing figures: to show the structure / analysis of the dataset + situation
+  * Deliver the Zip code 
+  * Structure 
+
+- FOR NOW ON: 
+1. Strucutre of the dataset --> you should already know this --> create a subsection 
+2. Adapt the model to what you have 
 
 Advanced ICU mortality prediction system using machine learning with baseline and SOFA-enhanced models. Achieves **91.7% accuracy** and **0.904 AUC** with the best performing model.
 

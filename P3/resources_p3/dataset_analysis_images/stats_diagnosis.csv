@@ -1,0 +1,13 @@
+diagnosis_group,Total_Patients,Deaths,Mortality_Rate,Mortality_Rate_%
+cardiovascular,1588,36,0.0227,2.27
+gastrohepatic,105,22,0.2095,20.95
+hematologic,18,4,0.2222,22.220000000000002
+infectious,354,57,0.161,16.1
+metabolic,39,3,0.0769,7.6899999999999995
+neurological,158,10,0.0633,6.329999999999999
+oncology,81,11,0.1358,13.58
+other,2494,309,0.1239,12.389999999999999
+psychiatric,59,3,0.0508,5.08
+renal,88,17,0.1932,19.32
+respiratory,173,20,0.1156,11.559999999999999
+trauma,357,23,0.0644,6.4399999999999995
