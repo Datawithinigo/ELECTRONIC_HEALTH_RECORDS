@@ -401,23 +401,36 @@ def evaluate_model(model, X_test, y_test, model_name, X_test_scaled=None):
     recall = recall_score(y_test, y_pred, zero_division=0)
     f1 = f1_score(y_test, y_pred, zero_division=0)
     
+    # Calculate specificity and NPV from confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    tn, fp, fn, tp = cm[0,0], cm[0,1], cm[1,0], cm[1,1]
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+    npv = tn / (tn + fn) if (tn + fn) > 0 else 0
+    
     print(f"\n📊 Performance Metrics:")
-    print(f"  • AUC-ROC:    {auc:.4f}")
-    print(f"  • Accuracy:   {accuracy:.4f}")
-    print(f"  • Precision:  {precision:.4f}")
-    print(f"  • Recall:     {recall:.4f}")
-    print(f"  • F1-Score:   {f1:.4f}")
+    print(f"  • AUC-ROC:       {auc:.4f} 🏆")
+    print(f"  • Accuracy:      {accuracy:.4f}")
+    print(f"  • Precision:     {precision:.4f}")
+    print(f"  • Recall (Sens): {recall:.4f}")
+    print(f"  • Specificity:   {specificity:.4f}")
+    print(f"  • F1-Score:      {f1:.4f}")
+    print(f"  • NPV:           {npv:.4f}")
     
     # Confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
     print(f"\n📋 Confusion Matrix:")
     print(f"              Predicted")
     print(f"              0      1")
-    print(f"  Actual 0  {cm[0,0]:5d}  {cm[0,1]:5d}")
-    print(f"         1  {cm[1,0]:5d}  {cm[1,1]:5d}")
+    print(f"  Actual 0    {tn}    {fp}")
+    print(f"         1     {fn}     {tp}")
+    
+    print(f"\n📈 Detailed Metrics:")
+    print(f"  True Positives:  {tp} (correctly predicted deaths)")
+    print(f"  True Negatives:  {tn} (correctly predicted survivors)")
+    print(f"  False Positives: {fp} (false alarms)")
+    print(f"  False Negatives: {fn} (missed deaths)")
     
     # Classification report
-    print(f"\n📈 Classification Report:")
+    print(f"\n📊 Classification Report:")
     print(classification_report(y_test, y_pred, target_names=['Survived', 'Died']))
     
     return {
@@ -426,6 +439,7 @@ def evaluate_model(model, X_test, y_test, model_name, X_test_scaled=None):
         'accuracy': accuracy,
         'precision': precision,
         'recall': recall,
+        'specificity': specificity,
         'f1': f1,
         'y_pred_proba': y_pred_proba
     }
@@ -538,6 +552,7 @@ def plot_model_comparison(results):
             'Accuracy': r['accuracy'],
             'Precision': r['precision'],
             'Recall': r['recall'],
+            'Specificity': r.get('specificity', 0),
             'F1-Score': r['f1']
         }
         for r in results
@@ -744,3 +759,15 @@ def save_models_for_api(xgb_model, rf_model, lr_model, lgb_model, feature_names,
 
 if __name__ == "__main__":
     xgb_model, rf_model, lr_model, lgb_model, results, comparison_df = main()
+    
+    # Update README.md with latest metrics
+    try:
+        from pathlib import Path
+        import subprocess
+        import sys
+        readme_script = Path(__file__).parent / "update_readme.py"
+        if readme_script.exists():
+            print("\n📝 Updating README.md with latest metrics...")
+            subprocess.run([sys.executable, str(readme_script)], check=False)
+    except Exception as e:
+        print(f"⚠️  Note: Could not auto-update README: {e}")

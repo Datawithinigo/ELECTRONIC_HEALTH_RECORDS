@@ -162,10 +162,10 @@ pip install pandas numpy matplotlib seaborn scikit-learn xgboost lightgbm fastap
 
 | Model | AUC | Accuracy | Precision | Recall | Specificity | F1-Score |
 |-------|-----|----------|-----------|--------|-------------|----------|
-| Random Forest | 0.900 | 91.4% | 0.532 | 0.641 | 0.942 | 0.581 |
-| XGBoost | 0.898 | 87.6% | 0.409 | 0.738 | 0.890 | 0.526 |
-| Logistic Regression | 0.878 | 78.9% | 0.283 | 0.825 | 0.785 | 0.422 |
-| LightGBM | 0.881 | 91.1% | 0.530 | 0.427 | 0.961 | 0.473 |
+| XGBoost | 0.875 | 80.3% | 0.298 | 0.816 | 0.802 | 0.436 |
+| Random Forest | 0.875 | 85.9% | 0.365 | 0.699 | 0.875 | 0.480 |
+| LightGBM | 0.859 | 85.2% | 0.350 | 0.680 | 0.870 | 0.462 |
+| Logistic Regression | 0.856 | 78.1% | 0.272 | 0.806 | 0.778 | 0.407 |
 
 ### Enhanced Models (With SOFA Score)
 

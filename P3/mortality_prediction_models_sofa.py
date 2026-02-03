@@ -793,3 +793,15 @@ def save_models_for_api(xgb_model, rf_model, lr_model, lgb_model, feature_names,
 
 if __name__ == "__main__":
     xgb_model, rf_model, lr_model, lgb_model, results, comparison_df = main()
+    
+    # Update README.md with latest metrics
+    try:
+        from pathlib import Path
+        import subprocess
+        import sys
+        readme_script = Path(__file__).parent / "update_readme.py"
+        if readme_script.exists():
+            print("\n📝 Updating README.md with latest metrics...")
+            subprocess.run([sys.executable, str(readme_script)], check=False)
+    except Exception as e:
+        print(f"⚠️  Note: Could not auto-update README: {e}")
