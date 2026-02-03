@@ -545,6 +545,14 @@ def plot_model_comparison(results):
     
     print("\n" + comparison_df.to_string(index=False))
     
+    # Save metrics to file
+    from pathlib import Path
+    results_dir = Path(__file__).parent / "results_images"
+    results_dir.mkdir(exist_ok=True)
+    metrics_file = results_dir / "model_metrics_summary.csv"
+    comparison_df.to_csv(metrics_file, index=False)
+    print(f"\n💾 Metrics saved to: {metrics_file}")
+    
     # Plot
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     metrics = ['AUC', 'Accuracy', 'Precision', 'Recall', 'F1-Score']
